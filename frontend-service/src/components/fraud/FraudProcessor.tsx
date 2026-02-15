@@ -28,9 +28,6 @@ export default function FraudProcessor() {
           <h2 className="text-base font-semibold text-neutral-900">System check</h2>
           <p className="text-xs text-neutral-500 mt-0.5">Real-time fraud analysis</p>
         </div>
-        <span className="rounded-full bg-[var(--brand-muted)] px-3 py-1 text-xs font-medium text-[var(--brand)]">
-          Secure
-        </span>
       </div>
 
       <div className="p-6">

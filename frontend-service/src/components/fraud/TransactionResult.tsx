@@ -70,7 +70,7 @@ export default function TransactionResult({ result, amount, onReset, onUpdate }:
   let statusConfig = {
     title: 'Payment processed',
     description: 'The transaction passed all checks and was sent to the beneficiary.',
-    badge: 'Approved',
+    badge: 'APPROVED',
     containerClass: 'bg-[var(--ifs-teal-muted)] border-[var(--ifs-teal)]/30 text-[#008f6b]',
     badgeClass: 'rounded-full bg-[var(--ifs-teal-muted)] text-[var(--ifs-teal)] border-0',
   };
@@ -79,7 +79,7 @@ export default function TransactionResult({ result, amount, onReset, onUpdate }:
       title: 'Manual review required',
       description:
         'This transaction was flagged for review. Approve or decline below with a reason.',
-      badge: 'Pending review',
+      badge: 'PENDING',
       containerClass: 'bg-[var(--ifs-orange-muted)] border-[var(--ifs-orange)]/30 text-[#b45309]',
       badgeClass: 'rounded-full bg-[var(--ifs-orange-muted)] text-[var(--ifs-orange)] border-0',
     };
@@ -87,7 +87,7 @@ export default function TransactionResult({ result, amount, onReset, onUpdate }:
     statusConfig = {
       title: 'Transaction blocked',
       description: 'This transaction was flagged as high risk. No funds were deducted.',
-      badge: 'Blocked',
+      badge: 'BLOCKED',
       containerClass: 'bg-red-50 border-red-200/80 text-red-800',
       badgeClass: 'rounded-full bg-red-100 text-red-600 border-0',
     };
@@ -150,6 +150,45 @@ export default function TransactionResult({ result, amount, onReset, onUpdate }:
             <p className="text-sm text-neutral-600 leading-relaxed">{result.reason}</p>
           </div>
         </div>
+
+        {(result.anomalies?.length ?? 0) > 0 && (
+          <div>
+            <p className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-2">
+              Anomalies detected
+            </p>
+            <ul className="rounded-2xl bg-amber-50/80 border border-amber-200/60 p-4 list-disc list-inside space-y-1 text-sm text-amber-900">
+              {result.anomalies!.map((a, i) => (
+                <li key={i}>{a}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {(result.anti_patterns?.length ?? 0) > 0 && (
+          <div>
+            <p className="text-xs font-medium text-red-600 uppercase tracking-wider mb-2">
+              Anti-patterns (suspicious behavior)
+            </p>
+            <ul className="rounded-2xl bg-red-50/80 border border-red-200/60 p-4 list-disc list-inside space-y-1 text-sm text-red-900">
+              {result.anti_patterns!.map((p, i) => (
+                <li key={i}>{p}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {(result.patterns?.length ?? 0) > 0 && (
+          <div>
+            <p className="text-xs font-medium text-[var(--ifs-teal)] uppercase tracking-wider mb-2">
+              Patterns identified (trust signals)
+            </p>
+            <ul className="rounded-2xl bg-[var(--ifs-teal-muted)]/50 border border-[var(--ifs-teal)]/30 p-4 list-disc list-inside space-y-1 text-sm text-neutral-700">
+              {result.patterns!.map((p, i) => (
+                <li key={i}>{p}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {isPending && (
           <div className="rounded-2xl border border-[var(--ifs-orange)]/30 bg-[var(--ifs-orange-muted)] p-4">

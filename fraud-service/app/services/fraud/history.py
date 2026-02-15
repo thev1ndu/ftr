@@ -145,5 +145,72 @@ class TransactionHistory:
             "amount_stats_24h": self.get_amount_stats_last_hours(from_account, amount_hours),
         }
 
+    # --- Anomaly & pattern analytics ---
+
+    def get_unique_beneficiaries_in_window(self, from_account: str, minutes: int = 10) -> int:
+        """Count of distinct to_account in last N minutes (structuring detection)."""
+        threshold = (datetime.utcnow() - timedelta(minutes=minutes)).strftime("%Y-%m-%d %H:%M:%S")
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT COUNT(DISTINCT to_account) FROM transactions
+                WHERE from_account = ? AND timestamp IS NOT NULL AND timestamp >= ?
+            """, (from_account, threshold))
+            return cursor.fetchone()[0] or 0
+
+    def get_recent_tx_details(
+        self, from_account: str, minutes: int = 10, limit: int = 50
+    ) -> list[dict]:
+        """Recent outbound tx with amount and to_account for pattern analysis."""
+        threshold = (datetime.utcnow() - timedelta(minutes=minutes)).strftime("%Y-%m-%d %H:%M:%S")
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT amount, to_account, timestamp FROM transactions
+                WHERE from_account = ? AND timestamp IS NOT NULL AND timestamp >= ?
+                ORDER BY timestamp DESC
+                LIMIT ?
+            """, (from_account, threshold, limit))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_hour_counts_last_7d(self, from_account: str) -> dict[int, int]:
+        """Hour-of-day (0-23 UTC) -> count of tx in last 7 days. For unusual-time detection."""
+        threshold = (datetime.utcnow() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT substr(timestamp, 12, 2) AS hour_str FROM transactions
+                WHERE from_account = ? AND timestamp IS NOT NULL AND timestamp >= ?
+            """, (from_account, threshold))
+            rows = cursor.fetchall()
+        counts: dict[int, int] = {h: 0 for h in range(24)}
+        for (hour_str,) in rows:
+            try:
+                h = int(hour_str)
+                if 0 <= h <= 23:
+                    counts[h] = counts.get(h, 0) + 1
+            except (ValueError, TypeError):
+                pass
+        return counts
+
+    def get_anomaly_stats(
+        self,
+        from_account: str,
+        to_account: str,
+        velocity_minutes: int = 10,
+        amount_hours: int = 24,
+    ) -> dict:
+        """Stats for anomaly and pattern/anti-pattern detection."""
+        stats = self.get_pattern_stats(from_account, to_account, velocity_minutes, amount_hours)
+        stats["unique_beneficiaries_10m"] = self.get_unique_beneficiaries_in_window(
+            from_account, velocity_minutes
+        )
+        stats["recent_tx_details_10m"] = self.get_recent_tx_details(
+            from_account, velocity_minutes
+        )
+        stats["hour_counts_7d"] = self.get_hour_counts_last_7d(from_account)
+        return stats
+
 
 history_service = TransactionHistory()

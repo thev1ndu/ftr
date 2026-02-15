@@ -5,6 +5,9 @@ export interface FraudCheckResponse {
   risk_score: number; // Mapping confidence to risk score
   reason: string;
   transaction_id: string;
+  anomalies?: string[];
+  patterns?: string[];
+  anti_patterns?: string[];
 }
 
 interface BackendResponse {
@@ -14,6 +17,9 @@ interface BackendResponse {
     confidence: number; // This maps to risk_score
     reason: string;
     score?: number; // Optional handle for new agent output
+    anomalies?: string[];
+    patterns?: string[];
+    anti_patterns?: string[];
   };
 }
 
@@ -59,7 +65,10 @@ export const scanTransaction = async (
     decision: decision.decision,
     risk_score: riskScore,
     reason: decision.reason,
-    transaction_id: data.transaction_id
+    transaction_id: data.transaction_id,
+    anomalies: decision.anomalies,
+    patterns: decision.patterns,
+    anti_patterns: decision.anti_patterns,
   };
 };
 
