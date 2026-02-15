@@ -161,7 +161,7 @@ export default function TransactionResult({ result, amount, onReset, onUpdate }:
               onChange={(e) => setReviewReason(e.target.value)}
               placeholder="Enter reason for approval or rejection…"
               rows={3}
-              className="mb-3 w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-sm placeholder:text-neutral-400 focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20 focus:outline-none"
+              className="mb-3 w-full rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm placeholder:text-neutral-400 focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20 focus:outline-none"
             />
             <div className="flex gap-3">
               <Button
