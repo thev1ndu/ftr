@@ -40,7 +40,7 @@ async def evaluate_transaction(transaction: Transaction):
         pattern_score_with_anomaly = pattern_score + anomaly_score_delta
         if pattern_decision == "ALLOW" and anomaly_score_delta >= 50:
             pattern_decision = "REVIEW"
-        if pattern_decision == "ALLOW" and anomaly_score_delta >= 80:
+        if pattern_decision == "ALLOW" and anomaly_score_delta > 75:
             pattern_decision = "BLOCK"
 
         combined_score = max(rule_score, pattern_score_with_anomaly)
@@ -99,9 +99,9 @@ async def evaluate_transaction(transaction: Transaction):
                 return result
 
         # If rules or patterns say BLOCK with high confidence, return immediately (no AI needed)
-        if combined_decision == "BLOCK" and (rule_score >= 80 or pattern_score_with_anomaly >= 80):
+        if combined_decision == "BLOCK" and (rule_score > 75 or pattern_score_with_anomaly > 75):
             reason_parts = [r for r in pattern_reasons if r]
-            if rule_score >= 80:
+            if rule_score > 75:
                 reason_parts.append("Static rules: high risk (amount/device/self-transfer).")
             if anti_patterns:
                 reason_parts.extend(anti_patterns)

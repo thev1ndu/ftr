@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getConfig, updateConfig, type EngineConfig } from '@/services/configService';
+import { setAccountType, getAccountLimits, type AccountLimitsResponse } from '@/services/fraudService';
 import Button from '@/components/ui/Button';
 
 const inputClass =
@@ -48,6 +49,11 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [accountId, setAccountId] = useState('acc_user_001');
+  const [accountType, setAccountTypeState] = useState<'SAVINGS' | 'CHECKING' | 'PREMIUM'>('SAVINGS');
+  const [accountLimits, setAccountLimits] = useState<AccountLimitsResponse | null>(null);
+  const [accountSaving, setAccountSaving] = useState(false);
+  const [accountSuccess, setAccountSuccess] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,6 +118,20 @@ export default function SettingsPage() {
     setForm(next);
     setDirty(false);
     setSuccess(false);
+  };
+
+  const handleSetAccountType = async () => {
+    setAccountSaving(true);
+    setAccountSuccess(false);
+    try {
+      const limits = await setAccountType(accountId.trim(), accountType);
+      setAccountLimits(limits);
+      setAccountSuccess(true);
+    } catch {
+      setAccountLimits(null);
+    } finally {
+      setAccountSaving(false);
+    }
   };
 
   return (
@@ -247,6 +267,49 @@ export default function SettingsPage() {
                   Reset
                 </Button>
               </div>
+
+              <section className="pt-6 border-t border-neutral-100">
+                <h3 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-3">Account type & limits</h3>
+                <p className="text-xs text-neutral-500 mb-3">
+                  Set account type for transaction middleware. Limits are enforced before the fraud engine (no bypass).
+                </p>
+                <div className="flex flex-wrap items-end gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-neutral-600">Account ID</label>
+                    <input
+                      type="text"
+                      value={accountId}
+                      onChange={(e) => setAccountId(e.target.value)}
+                      className={inputClass}
+                      placeholder="acc_user_001"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-neutral-600">Type</label>
+                    <select
+                      value={accountType}
+                      onChange={(e) => setAccountTypeState(e.target.value as 'SAVINGS' | 'CHECKING' | 'PREMIUM')}
+                      className={inputClass}
+                    >
+                      <option value="SAVINGS">SAVINGS ($5k / $10k day)</option>
+                      <option value="CHECKING">CHECKING ($25k / $50k day)</option>
+                      <option value="PREMIUM">PREMIUM ($100k / $250k day)</option>
+                    </select>
+                  </div>
+                  <Button
+                    variant="primary"
+                    onClick={handleSetAccountType}
+                    disabled={accountSaving || !accountId.trim()}
+                  >
+                    {accountSaving ? 'Saving…' : 'Set account type'}
+                  </Button>
+                </div>
+                {accountSuccess && accountLimits && (
+                  <p className="mt-2 text-xs text-[var(--ifs-teal)]">
+                    {accountId} set to {accountLimits.account_type}. Single: ${accountLimits.single_tx_limit.toLocaleString()}, Daily: ${accountLimits.daily_limit.toLocaleString()}.
+                  </p>
+                )}
+              </section>
             </div>
           )}
         </div>

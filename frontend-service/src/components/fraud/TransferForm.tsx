@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Button from '@/components/ui/Button';
+import { getAccountLimits, type AccountLimitsResponse } from '@/services/fraudService';
 
 interface TransferFormProps {
   onScan: (amount: number, deviceId: string, fromAccount: string, toAccount: string) => void;
+  isProcessing?: boolean;
 }
 
 const DEVICE_OPTIONS = [
@@ -22,16 +24,33 @@ const DEVICE_OPTIONS = [
 const inputClass =
   'block w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-neutral-800 text-sm placeholder:text-neutral-400 focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20 focus:outline-none transition-colors';
 
-export default function TransferForm({ onScan }: TransferFormProps) {
+export default function TransferForm({ onScan, isProcessing = false }: TransferFormProps) {
   const [amount, setAmount] = useState('');
   const [fromAccount, setFromAccount] = useState('acc_user_001');
   const [toAccount, setToAccount] = useState('acc_merchant_999');
   const [selectedDevice, setSelectedDevice] = useState('auto');
   const [detectedAgent, setDetectedAgent] = useState('');
+  const [limits, setLimits] = useState<AccountLimitsResponse | null>(null);
 
   useEffect(() => {
     setDetectedAgent(navigator.userAgent);
   }, []);
+
+  useEffect(() => {
+    if (!fromAccount.trim()) {
+      setLimits(null);
+      return;
+    }
+    let cancelled = false;
+    getAccountLimits(fromAccount.trim())
+      .then((data) => {
+        if (!cancelled) setLimits(data);
+      })
+      .catch(() => {
+        if (!cancelled) setLimits(null);
+      });
+    return () => { cancelled = true; };
+  }, [fromAccount]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +73,23 @@ export default function TransferForm({ onScan }: TransferFormProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        {limits && (
+          <div className="rounded-xl bg-[var(--brand-muted)]/50 border border-[var(--card-border)] px-4 py-3 mb-4">
+            <p className="text-xs font-medium text-neutral-600 mb-1">
+              Account type: <strong>{limits.account_type}</strong>
+            </p>
+            <p className="text-xs text-neutral-600">
+              Single tx limit: <strong>${limits.single_tx_limit.toLocaleString()}</strong>
+              {' · '}
+              Daily limit: <strong>${limits.daily_limit.toLocaleString()}</strong>
+              {' '}
+              (used: ${limits.daily_used.toLocaleString()})
+            </p>
+            <p className="text-xs text-neutral-500 mt-0.5">
+              OTP required for transfers ≥ ${limits.otp_required_above.toLocaleString()}
+            </p>
+          </div>
+        )}
         <section>
           <h3 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-2">
             Counterparty
@@ -158,8 +194,13 @@ export default function TransferForm({ onScan }: TransferFormProps) {
         </section>
 
         <div className="pt-1">
-          <Button type="submit" variant="primary" className="w-full sm:w-auto">
-            Process Transaction
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full sm:w-auto"
+            disabled={isProcessing}
+          >
+            {isProcessing ? 'Processing…' : 'Process Transaction'}
           </Button>
         </div>
       </form>

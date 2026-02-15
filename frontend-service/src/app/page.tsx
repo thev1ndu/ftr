@@ -5,34 +5,94 @@ import Link from 'next/link';
 import TransferForm from '@/components/fraud/TransferForm';
 import FraudProcessor from '@/components/fraud/FraudProcessor';
 import TransactionResult from '@/components/fraud/TransactionResult';
-import { scanTransaction, FraudCheckResponse } from '@/services/fraudService';
+import OtpPopup from '@/components/fraud/OtpPopup';
+import {
+  scanTransaction,
+  requestOtp,
+  FraudCheckResponse,
+  TransactionMiddlewareError,
+} from '@/services/fraudService';
+
+const OTP_THRESHOLD = 100; // matches backend; OTP required for amounts >= this
+
+type Status = 'IDLE' | 'OTP' | 'PROCESSING' | 'RESULT';
 
 export default function Home() {
-  const [status, setStatus] = useState<'IDLE' | 'PROCESSING' | 'RESULT'>('IDLE');
+  const [status, setStatus] = useState<Status>('IDLE');
   const [result, setResult] = useState<FraudCheckResponse | null>(null);
   const [amount, setAmount] = useState<number>(0);
   const [fromAccount, setFromAccount] = useState<string>('');
   const [toAccount, setToAccount] = useState<string>('');
+  const [deviceId, setDeviceId] = useState<string>('');
+  const [transactionId, setTransactionId] = useState<string>('');
+  const [otpDemoCode, setOtpDemoCode] = useState<string>('');
+  const [middlewareError, setMiddlewareError] = useState<string | null>(null);
 
-  const handleScan = async (transferAmount: number, deviceId: string, from: string, to: string) => {
+  const handleScan = async (transferAmount: number, devId: string, from: string, to: string) => {
     setAmount(transferAmount);
     setFromAccount(from);
     setToAccount(to);
+    setDeviceId(devId);
+    setMiddlewareError(null);
+    const txId = crypto.randomUUID();
+    setTransactionId(txId);
+
+    if (transferAmount >= OTP_THRESHOLD) {
+      setStatus('OTP');
+      try {
+        const otpRes = await requestOtp(txId, from, transferAmount);
+        setOtpDemoCode(otpRes.otp_demo);
+      } catch (e) {
+        console.error(e);
+        setMiddlewareError('Could not request OTP. Please try again.');
+      }
+      return;
+    }
+
     setStatus('PROCESSING');
-
     try {
-      const processPromise = scanTransaction(transferAmount, deviceId, fromAccount, toAccount);
+      const processPromise = scanTransaction(transferAmount, devId, from, to, { transactionId: txId });
       const delayPromise = new Promise((resolve) => setTimeout(resolve, 3500));
-
       const [apiResult] = await Promise.all([processPromise, delayPromise]);
-
       setResult(apiResult);
       setStatus('RESULT');
     } catch (error) {
-      console.error('Scan failed', error);
+      if (error instanceof TransactionMiddlewareError) {
+        setMiddlewareError(error.detail.message);
+      } else {
+        console.error('Scan failed', error);
+        setMiddlewareError('System Error: Could not verify transaction security.');
+      }
       setStatus('IDLE');
-      alert('System Error: Could not verify transaction security.');
     }
+  };
+
+  const handleOtpConfirm = async (otp: string) => {
+    setStatus('PROCESSING');
+    setMiddlewareError(null);
+    try {
+      const processPromise = scanTransaction(amount, deviceId, fromAccount, toAccount, {
+        transactionId,
+        otp,
+      });
+      const delayPromise = new Promise((resolve) => setTimeout(resolve, 3500));
+      const [apiResult] = await Promise.all([processPromise, delayPromise]);
+      setResult(apiResult);
+      setStatus('RESULT');
+    } catch (error) {
+      if (error instanceof TransactionMiddlewareError) {
+        setMiddlewareError(error.detail.message);
+      } else {
+        console.error('Scan failed', error);
+        setMiddlewareError('System Error: Could not verify transaction security.');
+      }
+      setStatus('IDLE');
+    }
+  };
+
+  const handleOtpCancel = () => {
+    setStatus('IDLE');
+    setOtpDemoCode('');
   };
 
   const handleReset = () => {
@@ -41,7 +101,11 @@ export default function Home() {
     setAmount(0);
     setFromAccount('');
     setToAccount('');
+    setOtpDemoCode('');
+    setMiddlewareError(null);
   };
+
+  const isProcessing = status === 'PROCESSING';
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 relative bg-[var(--background)]">
@@ -68,15 +132,19 @@ export default function Home() {
           </nav>
         </header>
 
-        <main className="transition-all duration-500 ease-out">
-          {status === 'IDLE' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <TransferForm onScan={handleScan} />
+        <main className="transition-all duration-500 ease-out space-y-4">
+          {middlewareError && (
+            <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+              {middlewareError}
             </div>
           )}
 
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <TransferForm onScan={handleScan} isProcessing={isProcessing} />
+          </div>
+
           {status === 'PROCESSING' && (
-            <div className="animate-in fade-in duration-400">
+            <div className="animate-in fade-in duration-300">
               <FraudProcessor />
             </div>
           )}
@@ -95,6 +163,17 @@ export default function Home() {
           )}
         </main>
       </div>
+
+      {status === 'OTP' && otpDemoCode && (
+        <OtpPopup
+          demoCode={otpDemoCode}
+          fromAccount={fromAccount}
+          toAccount={toAccount}
+          amount={amount}
+          onConfirm={handleOtpConfirm}
+          onCancel={handleOtpCancel}
+        />
+      )}
     </div>
   );
 }

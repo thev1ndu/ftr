@@ -81,7 +81,7 @@ def pattern_check(transaction, stats: dict):
             score += 25
             reasons.append(f"Amount above recent max: ${amount:,.0f} vs 24h max ${max_amount:,.0f}")
 
-    if decision != "BLOCK" and score >= 80:
+    if decision != "BLOCK" and score > 75:
         decision = "BLOCK"
     elif decision != "BLOCK" and score >= 50:
         decision = "REVIEW"
@@ -233,8 +233,8 @@ def basic_rule_check(transaction):
                 score += 90
                 reasons.append(f"High Risk Security Tool: {keyword}")
 
-    # Decision Logic
-    if score >= 80:
+    # Decision Logic: review range below 75, block above 75
+    if score > 75:
         decision = "BLOCK"
     elif score >= 50:
         decision = "REVIEW"

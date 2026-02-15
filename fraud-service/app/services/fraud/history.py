@@ -114,6 +114,17 @@ class TransactionHistory:
             """, (from_account, threshold, max_rows))
             return [row[0] for row in cursor.fetchall()]
 
+    def get_daily_outbound_total(self, from_account: str) -> float:
+        """Total amount sent from this account in the last 24 hours (for limit enforcement)."""
+        threshold = (datetime.utcnow() - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT COALESCE(SUM(amount), 0) FROM transactions
+                WHERE from_account = ? AND timestamp IS NOT NULL AND timestamp >= ? AND amount > 0
+            """, (from_account, threshold))
+            return float(cursor.fetchone()[0] or 0)
+
     def get_amount_stats_last_hours(self, from_account: str, hours: int = 24) -> dict:
         """Average and max outbound amount in the last N hours for spike detection."""
         threshold = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")

@@ -22,23 +22,23 @@ export default function FraudProcessor() {
   const progress = ((step + 0.5) / steps.length) * 100;
 
   return (
-    <div className="rounded-3xl bg-white border border-[var(--card-border)] shadow-[var(--card-shadow)] overflow-hidden">
-      <div className="flex items-center justify-between border-b border-neutral-100 bg-neutral-50/60 px-6 py-4">
+    <div className="rounded-2xl bg-white border border-[var(--card-border)] shadow-[var(--card-shadow)] overflow-hidden mt-4">
+      <div className="flex items-center justify-between border-b border-neutral-100 bg-neutral-50/60 px-5 py-3">
         <div>
-          <h2 className="text-base font-semibold text-neutral-900">System check</h2>
+          <h2 className="text-sm font-semibold text-neutral-900">System check</h2>
           <p className="text-xs text-neutral-500 mt-0.5">Real-time fraud analysis</p>
         </div>
       </div>
 
-      <div className="p-6">
-        <div className="mb-8 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+      <div className="p-5">
+        <div className="mb-6 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
           <div
             className="h-full rounded-full bg-[var(--brand)] transition-all duration-500 ease-out"
             style={{ width: `${Math.min(progress, 100)}%` }}
           />
         </div>
 
-        <ul className="space-y-4" role="list">
+        <ul className="space-y-3" role="list">
           {steps.map((label, index) => {
             const isDone = index < step;
             const isActive = index === step;
@@ -77,7 +77,7 @@ export default function FraudProcessor() {
           })}
         </ul>
 
-        <p className="mt-8 pt-4 border-t border-neutral-100 text-center text-xs text-neutral-400">FTR.</p>
+        <p className="mt-6 pt-3 border-t border-neutral-100 text-center text-xs text-neutral-400">FTR.</p>
       </div>
     </div>
   );

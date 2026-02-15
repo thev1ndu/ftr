@@ -64,7 +64,8 @@ def should_continue(state: AgentState):
         if state.get("feedback"):
              return END
 
-        if decision == "BLOCK" or score > 70:
+        # Send to human review: BLOCK, score > 75, or REVIEW (50–75) so user can approve/decline
+        if decision == "BLOCK" or score > 75 or decision == "REVIEW":
             return "human_review"
             
     except:

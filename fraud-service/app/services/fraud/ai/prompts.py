@@ -21,8 +21,8 @@ You are a financial fraud detection AI. Use past transaction patterns and real-w
 **Decision:**
 - CRITICAL: If "Human Reviewer" says "APPROVE", output ALLOW.
 - Score < 20: ALLOW
-- Score 20-70: REVIEW
-- Score > 70: BLOCK
+- Score 20-75: REVIEW (review range is below 75)
+- Score > 75: BLOCK (above 75 is blocked)
 
 Respond ONLY in JSON:
 {

@@ -23,7 +23,7 @@ function StatusIcon({ decision }: { decision: string }) {
         </svg>
       </span>
     );
-  if (decision === 'PENDING_REVIEW')
+  if (decision === 'PENDING_REVIEW' || decision === 'REVIEW')
     return (
       <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--ifs-orange-muted)] text-[var(--ifs-orange)]">
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -42,9 +42,9 @@ function StatusIcon({ decision }: { decision: string }) {
 
 export default function TransactionResult({ result, amount, fromAccount, toAccount, onReset, onUpdate }: TransactionResultProps) {
   const decision = result.decision;
-  const isPending = decision === 'PENDING_REVIEW';
+  const isPending = decision === 'PENDING_REVIEW' || decision === 'REVIEW';
   const score = result.risk_score ?? 0;
-  const isFraud = result.is_fraud;
+  const isFraud = result.is_fraud && !isPending;
 
   const [reviewReason, setReviewReason] = useState('');
   const [isReviewing, setIsReviewing] = useState(false);
