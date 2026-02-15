@@ -4,6 +4,7 @@ python-dotenv
 langchain-openai
 langchain-core
 langgraph
+langgraph-checkpoint-sqlite
 pydantic
 pydantic-settings
 aiosqlite
