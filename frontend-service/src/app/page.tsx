@@ -11,9 +11,13 @@ export default function Home() {
   const [status, setStatus] = useState<'IDLE' | 'PROCESSING' | 'RESULT'>('IDLE');
   const [result, setResult] = useState<FraudCheckResponse | null>(null);
   const [amount, setAmount] = useState<number>(0);
+  const [fromAccount, setFromAccount] = useState<string>('');
+  const [toAccount, setToAccount] = useState<string>('');
 
-  const handleScan = async (transferAmount: number, deviceId: string, fromAccount: string, toAccount: string) => {
+  const handleScan = async (transferAmount: number, deviceId: string, from: string, to: string) => {
     setAmount(transferAmount);
+    setFromAccount(from);
+    setToAccount(to);
     setStatus('PROCESSING');
 
     try {
@@ -35,6 +39,8 @@ export default function Home() {
     setStatus('IDLE');
     setResult(null);
     setAmount(0);
+    setFromAccount('');
+    setToAccount('');
   };
 
   return (
@@ -52,6 +58,12 @@ export default function Home() {
               className="text-xs font-medium text-neutral-600 hover:text-[var(--brand)] transition-colors rounded-full px-3 py-1.5 hover:bg-[var(--brand-muted)]"
             >
               History
+            </Link>
+            <Link
+              href="/settings"
+              className="text-xs font-medium text-neutral-600 hover:text-[var(--brand)] transition-colors rounded-full px-3 py-1.5 hover:bg-[var(--brand-muted)]"
+            >
+              Settings
             </Link>
           </nav>
         </header>
@@ -74,6 +86,8 @@ export default function Home() {
               <TransactionResult
                 result={result}
                 amount={amount}
+                fromAccount={fromAccount}
+                toAccount={toAccount}
                 onReset={handleReset}
                 onUpdate={setResult}
               />

@@ -77,7 +77,7 @@ export default function FraudProcessor() {
           })}
         </ul>
 
-        <p className="mt-8 pt-4 border-t border-neutral-100 text-center text-xs text-neutral-400">FTR</p>
+        <p className="mt-8 pt-4 border-t border-neutral-100 text-center text-xs text-neutral-400">FTR.</p>
       </div>
     </div>
   );

@@ -2,10 +2,12 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { lookupHistory, TransactionHistoryItem } from '@/services/fraudService';
 import Button from '@/components/ui/Button';
 
 const SEARCH_DEBOUNCE_MS = 400;
+const PER_PAGE = 10;
 
 const inputClass =
   'block w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-neutral-800 text-sm placeholder:text-neutral-400 focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20 focus:outline-none transition-colors';
@@ -63,9 +65,13 @@ function TransactionCard({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mb-3">
         <div>
           <span className="text-neutral-400 text-xs uppercase tracking-wider">Counterparty</span>
-          <p className="font-mono text-neutral-700 truncate" title={isOutgoing ? tx.to_account : tx.from_account}>
+          <Link
+            href={`/history?account=${encodeURIComponent(isOutgoing ? tx.to_account : tx.from_account)}`}
+            className="font-mono text-[var(--brand)] hover:underline truncate block"
+            title={`View history for ${isOutgoing ? tx.to_account : tx.from_account}`}
+          >
             {isOutgoing ? tx.to_account : tx.from_account}
-          </p>
+          </Link>
         </div>
         <div>
           <span className="text-neutral-400 text-xs uppercase tracking-wider">Risk score</span>
@@ -92,11 +98,19 @@ function TransactionCard({
 }
 
 export default function LookupPage() {
+  const searchParams = useSearchParams();
   const [accountId, setAccountId] = useState('');
   const [history, setHistory] = useState<TransactionHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Pre-fill account from URL (e.g. /history?account=acc_merchant_999)
+  useEffect(() => {
+    const account = searchParams.get('account');
+    if (account?.trim()) setAccountId(account.trim());
+  }, [searchParams]);
 
   const handleLookup = useCallback(async (overrideAccountId?: string) => {
     const id = (overrideAccountId ?? accountId).trim();
@@ -107,6 +121,7 @@ export default function LookupPage() {
     }
     setLoading(true);
     setError('');
+    setPage(1);
     try {
       const data = await lookupHistory(id);
       setHistory(data);
@@ -139,6 +154,16 @@ export default function LookupPage() {
 
   const showEmpty = !loading && accountId.trim() && !error && history.length === 0;
 
+  const totalPages = Math.max(1, Math.ceil(history.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * PER_PAGE;
+  const end = Math.min(start + PER_PAGE, history.length);
+  const pageHistory = history.slice(start, end);
+
+  useEffect(() => {
+    if (page > totalPages && totalPages >= 1) setPage(totalPages);
+  }, [totalPages, page]);
+
   return (
     <div className="min-h-screen flex flex-col items-center p-6 md:p-10 relative bg-[var(--background)]">
       <div className="relative z-10 w-full max-w-3xl">
@@ -157,6 +182,12 @@ export default function LookupPage() {
             <span className="text-xs font-medium text-[var(--brand)] bg-[var(--brand-muted)] rounded-full px-3 py-1.5">
               History
             </span>
+            <Link
+              href="/settings"
+              className="text-xs font-medium text-neutral-600 hover:text-[var(--brand)] transition-colors rounded-full px-3 py-1.5 hover:bg-[var(--brand-muted)]"
+            >
+              Settings
+            </Link>
           </nav>
         </header>
 
@@ -225,17 +256,48 @@ export default function LookupPage() {
               </div>
             </div>
 
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2 flex items-center justify-between flex-wrap gap-2">
               <h2 className="text-sm font-semibold text-neutral-800">Transactions</h2>
-              <span className="text-xs text-neutral-500">{history.length} record{history.length !== 1 ? 's' : ''}</span>
+              <span className="text-xs text-neutral-500">
+                {history.length} record{history.length !== 1 ? 's' : ''}
+                {history.length > PER_PAGE && (
+                  <> · Page {safePage} of {totalPages}</>
+                )}
+              </span>
             </div>
             <ul className="space-y-3 list-none p-0 m-0">
-              {history.map((tx) => (
+              {pageHistory.map((tx) => (
                 <li key={tx.transaction_id}>
                   <TransactionCard tx={tx} accountId={accountId.trim()} />
                 </li>
               ))}
             </ul>
+
+            {history.length > PER_PAGE && (
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
+                <p className="text-xs text-neutral-500">
+                  Showing {start + 1}–{end} of {history.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={safePage <= 1}
+                    className="min-w-[80px]"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={safePage >= totalPages}
+                    className="min-w-[80px]"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         )}
 

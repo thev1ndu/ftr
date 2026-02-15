@@ -1,3 +1,5 @@
+from typing import Optional
+
 # Enhanced suspicious keywords with higher precision
 SUSPICIOUS_DEVICE_KEYWORDS = [
     "kali", "parrot os", "blackarch", "metasploit",
@@ -5,25 +7,7 @@ SUSPICIOUS_DEVICE_KEYWORDS = [
     "frida", "xposed", "emulator", "nox", "bluestacks"
 ]
 
-# Anomaly / pattern thresholds
-ROUND_AMOUNT_TOLERANCE = 0.01          # treat as round if within 0.01 of round number
-UNUSUAL_HOUR_MIN_TX = 5                 # need at least this many tx in 7d to have a "typical" hour
-STRUCTURING_MIN_TX = 3                  # structuring: this many tx to different beneficiaries in window
-STRUCTURING_NEW_BENEFICIARY_BONUS = 15  # extra score when multiple new payees in window
-OFF_HOURS_SCORE = 25                    # score for tx at unusual hour
-ROUND_AMOUNT_SCORE = 20                # score when amount is suspiciously round (e.g. 5000, 10000)
-RECURRING_BENEFICIARY_MIN = 3          # pattern: trusted if >= this many past tx to same payee
-
-# Pattern-based thresholds (real-world style)
-VELOCITY_BLOCK_THRESHOLD = 10   # transactions in window -> BLOCK (spam/bot)
-VELOCITY_REVIEW_THRESHOLD = 5  # -> REVIEW
-VELOCITY_WARN_THRESHOLD = 3    # -> small score bump
-NEW_BENEFICIARY_HIGH_AMOUNT = 10_000  # first-time + amount > this -> high risk
-NEW_BENEFICIARY_MED_AMOUNT = 5_000
-NEW_BENEFICIARY_LOW_AMOUNT = 1_000
-AMOUNT_SPIKE_MULTIPLIER_AVG = 3.0   # current > 3x recent avg -> spike
-AMOUNT_SPIKE_MULTIPLIER_MAX = 2.0   # current > 2x recent max -> spike
-MIN_TRANSACTIONS_FOR_AVG = 2        # need at least this many to use avg/max
+from app.services.fraud.config_store import get_all as _get_engine_config
 
 
 def pattern_check(transaction, stats: dict):
@@ -33,6 +17,7 @@ def pattern_check(transaction, stats: dict):
     (amount_stats_24h: { avg_amount, max_amount, transaction_count }).
     Returns (decision, score, reasons).
     """
+    cfg = _get_engine_config()
     score = 0
     decision = "ALLOW"
     reasons = []
@@ -45,44 +30,54 @@ def pattern_check(transaction, stats: dict):
     tx_count_24h = amount_stats.get("transaction_count") or 0
     amount = transaction.amount
 
+    v_block = int(cfg.get("velocity_block_threshold", 10))
+    v_review = int(cfg.get("velocity_review_threshold", 5))
+    v_warn = int(cfg.get("velocity_warn_threshold", 3))
+    new_high = float(cfg.get("new_beneficiary_high_amount", 10_000))
+    new_med = float(cfg.get("new_beneficiary_med_amount", 5_000))
+    new_low = float(cfg.get("new_beneficiary_low_amount", 1_000))
+    spike_avg = float(cfg.get("amount_spike_multiplier_avg", 3.0))
+    spike_max = float(cfg.get("amount_spike_multiplier_max", 2.0))
+    min_tx_avg = int(cfg.get("min_transactions_for_avg", 2))
+
     # 1. Velocity / spam: too many transactions in short window
-    if recent_count >= VELOCITY_BLOCK_THRESHOLD:
+    if recent_count >= v_block:
         score += 85
         reasons.append(f"High velocity: {recent_count} transactions in last 10 minutes (possible spam/bot)")
-        decision = "BLOCK"  
-    elif recent_count >= VELOCITY_REVIEW_THRESHOLD:
+        decision = "BLOCK"
+    elif recent_count >= v_review:
         score += 40
         reasons.append(f"Elevated velocity: {recent_count} transactions in last 10 minutes")
         if decision != "BLOCK":
             decision = "REVIEW"
-    elif recent_count >= VELOCITY_WARN_THRESHOLD:
+    elif recent_count >= v_warn:
         score += 20
         reasons.append(f"Unusual frequency: {recent_count} transactions in last 10 minutes")
 
     # 2. New beneficiary + high amount (first-time large transfer)
     if beneficiary_count == 0:
-        if amount > NEW_BENEFICIARY_HIGH_AMOUNT:
+        if amount > new_high:
             score += 50
             reasons.append(f"New beneficiary + high amount (${amount:,.0f})")
             if decision != "BLOCK":
                 decision = "REVIEW"
-        elif amount > NEW_BENEFICIARY_MED_AMOUNT:
+        elif amount > new_med:
             score += 35
             reasons.append(f"New beneficiary + medium amount (${amount:,.0f})")
             if decision != "BLOCK":
                 decision = "REVIEW"
-        elif amount > NEW_BENEFICIARY_LOW_AMOUNT:
+        elif amount > new_low:
             score += 25
             reasons.append("New beneficiary + amount above $1,000")
 
     # 3. Amount spike vs user's recent behavior
-    if tx_count_24h >= MIN_TRANSACTIONS_FOR_AVG and avg_amount > 0:
-        if amount > AMOUNT_SPIKE_MULTIPLIER_AVG * avg_amount:
+    if tx_count_24h >= min_tx_avg and avg_amount > 0:
+        if amount > spike_avg * avg_amount:
             score += 30
             reasons.append(f"Amount spike: ${amount:,.0f} is >3x recent avg (${avg_amount:,.0f})")
             if decision != "BLOCK":
                 decision = "REVIEW"
-        if max_amount > 0 and amount > AMOUNT_SPIKE_MULTIPLIER_MAX * max_amount:
+        if max_amount > 0 and amount > spike_max * max_amount:
             score += 25
             reasons.append(f"Amount above recent max: ${amount:,.0f} vs 24h max ${max_amount:,.0f}")
 
@@ -94,8 +89,10 @@ def pattern_check(transaction, stats: dict):
     return decision, min(score, 100), reasons
 
 
-def _is_round_amount(amount: float, tolerance: float = ROUND_AMOUNT_TOLERANCE) -> bool:
+def _is_round_amount(amount: float, tolerance: Optional[float] = None) -> bool:
     """True if amount is a round number (e.g. 1000, 5000, 10000) often seen in fraud."""
+    if tolerance is None:
+        tolerance = float(_get_engine_config().get("round_amount_tolerance", 0.01))
     if amount <= 0:
         return False
     for round_val in [100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]:
@@ -115,6 +112,15 @@ def detect_anomalies_and_patterns(transaction, stats: dict):
     Returns (score_delta, anomalies[], patterns[], anti_patterns[]).
     """
     from datetime import datetime
+    cfg = _get_engine_config()
+    unusual_hour_min = int(cfg.get("unusual_hour_min_tx", 5))
+    off_hours_score = int(cfg.get("off_hours_score", 25))
+    round_score = int(cfg.get("round_amount_score", 20))
+    recurring_min = int(cfg.get("recurring_beneficiary_min", 3))
+    struct_min = int(cfg.get("structuring_min_tx", 3))
+    struct_bonus = int(cfg.get("structuring_new_beneficiary_bonus", 15))
+    tolerance = float(cfg.get("round_amount_tolerance", 0.01))
+
     score_delta = 0
     anomalies = []
     patterns = []
@@ -131,7 +137,6 @@ def detect_anomalies_and_patterns(transaction, stats: dict):
     tx_count_24h = amount_stats.get("transaction_count") or 0
 
     # --- Anomalies ---
-    # 1. Amount anomaly: far from user's recent average
     if tx_count_24h >= 2 and avg_amount > 0:
         ratio = amount / avg_amount if avg_amount else 0
         if ratio > 5 or (ratio < 0.2 and amount > 100):
@@ -140,50 +145,44 @@ def detect_anomalies_and_patterns(transaction, stats: dict):
             )
             score_delta += 25
 
-    # 2. Time anomaly: unusual hour (e.g. 00-05 UTC) vs user's typical activity
     total_7d = sum(hour_counts.values())
     current_hour_utc = datetime.utcnow().hour
-    if total_7d >= UNUSUAL_HOUR_MIN_TX:
+    if total_7d >= unusual_hour_min:
         typical_hours = [h for h, c in hour_counts.items() if c > 0]
         if typical_hours and current_hour_utc not in typical_hours:
-            # Check if current hour is "off" (e.g. night) vs peak hours
             peak_hour = max(hour_counts, key=hour_counts.get)
-            if abs(current_hour_utc - peak_hour) > 6:  # e.g. 2am vs 2pm
+            if abs(current_hour_utc - peak_hour) > 6:
                 anomalies.append(
                     f"Time anomaly: transaction at unusual hour (UTC {current_hour_utc}:00) vs your typical activity"
                 )
-                score_delta += OFF_HOURS_SCORE
+                score_delta += off_hours_score
 
-    # 3. Round-amount anomaly (common in fraud)
-    if amount >= 500 and _is_round_amount(amount):
+    if amount >= 500 and _is_round_amount(amount, tolerance):
         anomalies.append(f"Round amount: ${amount:,.0f} (round numbers are more common in fraud)")
-        score_delta += ROUND_AMOUNT_SCORE
+        score_delta += round_score
 
     # --- Patterns (good / neutral) ---
-    if beneficiary_count >= RECURRING_BENEFICIARY_MIN:
+    if beneficiary_count >= recurring_min:
         patterns.append(f"Recurring beneficiary: {beneficiary_count} past transactions to this payee (trusted pattern)")
     if tx_count_24h >= 2 and avg_amount > 0 and 0.5 <= amount / avg_amount <= 2.0:
         patterns.append("Amount consistent with your recent 24h behavior")
 
     # --- Anti-patterns (bad) ---
-    # 1. Structuring: many tx to different (often new) beneficiaries in short window
-    if unique_beneficiaries_10m >= STRUCTURING_MIN_TX and recent_count >= STRUCTURING_MIN_TX:
+    if unique_beneficiaries_10m >= struct_min and recent_count >= struct_min:
         anti_patterns.append(
             f"Structuring: {recent_count} transactions to {unique_beneficiaries_10m} different beneficiaries in 10 minutes"
         )
         score_delta += 40
     if beneficiary_count == 0 and unique_beneficiaries_10m >= 2:
         anti_patterns.append("Multiple new beneficiaries in short window")
-        score_delta += STRUCTURING_NEW_BENEFICIARY_BONUS
+        score_delta += struct_bonus
 
-    # 2. Round amounts only in recent burst
-    if recent_details and amount >= 500 and _is_round_amount(amount):
-        round_recent = sum(1 for r in recent_details if _is_round_amount(float(r.get("amount") or 0)))
+    if recent_details and amount >= 500 and _is_round_amount(amount, tolerance):
+        round_recent = sum(1 for r in recent_details if _is_round_amount(float(r.get("amount") or 0), tolerance))
         if round_recent >= 2:
             anti_patterns.append("Multiple round-amount transactions in short window (smurfing pattern)")
             score_delta += 15
 
-    # 3. Burst then large: several small/medium then one large to new beneficiary (already partly in pattern_check)
     if beneficiary_count == 0 and recent_count >= 2 and amount > (avg_amount * 2 if avg_amount else 5000):
         anti_patterns.append("Large transfer to new beneficiary after recent burst of activity")
         score_delta += 20

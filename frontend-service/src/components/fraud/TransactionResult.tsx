@@ -1,12 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { FraudCheckResponse, reviewTransaction } from '@/services/fraudService';
 import Button from '@/components/ui/Button';
 
 interface TransactionResultProps {
   result: FraudCheckResponse;
   amount: number;
+  fromAccount: string;
+  toAccount: string;
   onReset: () => void;
   onUpdate: (newResult: FraudCheckResponse) => void;
 }
@@ -37,7 +40,7 @@ function StatusIcon({ decision }: { decision: string }) {
   );
 }
 
-export default function TransactionResult({ result, amount, onReset, onUpdate }: TransactionResultProps) {
+export default function TransactionResult({ result, amount, fromAccount, toAccount, onReset, onUpdate }: TransactionResultProps) {
   const decision = result.decision;
   const isPending = decision === 'PENDING_REVIEW';
   const score = result.risk_score ?? 0;
@@ -97,7 +100,7 @@ export default function TransactionResult({ result, amount, onReset, onUpdate }:
     <div className="rounded-3xl bg-white border border-[var(--card-border)] shadow-[var(--card-shadow)] overflow-hidden">
       <div className="flex items-center justify-between border-b border-neutral-100 bg-neutral-50/60 px-6 py-4">
         <div>
-          <h2 className="text-base font-semibold text-neutral-900">Transaction receipt</h2>
+          <h2 className="text-base font-semibold text-neutral-900">Transaction Receipt</h2>
           <p className="text-xs text-neutral-500 mt-0.5">Final status</p>
         </div>
         <span
@@ -115,6 +118,41 @@ export default function TransactionResult({ result, amount, onReset, onUpdate }:
           <div>
             <h3 className="font-semibold text-current">{statusConfig.title}</h3>
             <p className="mt-1 text-sm opacity-90">{statusConfig.description}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">
+              From
+            </p>
+            {fromAccount ? (
+              <Link
+                href={`/history?account=${encodeURIComponent(fromAccount)}`}
+                className="text-sm font-mono text-[var(--brand)] hover:underline truncate block"
+                title={`View history for ${fromAccount}`}
+              >
+                {fromAccount}
+              </Link>
+            ) : (
+              <p className="text-sm font-mono text-neutral-500">—</p>
+            )}
+          </div>
+          <div>
+            <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">
+              To
+            </p>
+            {toAccount ? (
+              <Link
+                href={`/history?account=${encodeURIComponent(toAccount)}`}
+                className="text-sm font-mono text-[var(--brand)] hover:underline truncate block"
+                title={`View history for ${toAccount}`}
+              >
+                {toAccount}
+              </Link>
+            ) : (
+              <p className="text-sm font-mono text-neutral-500">—</p>
+            )}
           </div>
         </div>
 
