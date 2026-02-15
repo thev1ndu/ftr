@@ -5,6 +5,7 @@ from app.services.fraud.engine import basic_rule_check
 from app.services.fraud.ai.tools import _check_beneficiary_history_logic
 from app.services.fraud.ai.agent import workflow, get_system_message
 from app.services.fraud.ai.memory import SQLiteMemory
+from app.core.config import get_settings
 from app.utils.helpers import format_transaction
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
@@ -78,8 +79,9 @@ async def evaluate_transaction(transaction: Transaction):
             "feedback": ""
         }
         
-        # Use AsyncSqliteSaver
-        async with AsyncSqliteSaver.from_conn_string("checkpoints.db") as checkpointer:
+        # Use AsyncSqliteSaver (path from config so one DB regardless of cwd)
+        settings = get_settings()
+        async with AsyncSqliteSaver.from_conn_string(settings.CHECKPOINTS_DB_PATH) as checkpointer:
             agent = workflow.compile(checkpointer=checkpointer, interrupt_before=["human_review"])
             
             final_state = await agent.ainvoke(initial_state, config=config)
@@ -90,15 +92,15 @@ async def evaluate_transaction(transaction: Transaction):
             
             if next_steps and "human_review" in next_steps:
                  logger.info(f"Transaction {transaction.transaction_id} paused for Human Review.")
-                 
                  last_message_content = state_snapshot.values["messages"][-1].content
                  parsed_result = _parse_json_response(last_message_content)
-                 
-                 return {
+                 pending_result = {
                      "decision": "PENDING_REVIEW",
                      "score": parsed_result.get("score", 85),
                      "reason": parsed_result.get("reason", "High Risk transaction flagged for Manual Review.")
                  }
+                 history_service.log_transaction(transaction, pending_result)
+                 return pending_result
             
             output_text = final_state["messages"][-1].content
             logger.info(f"Agent raw response: {output_text}")

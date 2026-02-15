@@ -47,6 +47,17 @@ class TransactionHistory:
             ))
             conn.commit()
 
+    def update_transaction_decision(self, transaction_id: str, decision: str, risk_score: float, reason: str):
+        """Update decision/score/reason for an existing transaction (e.g. after human review)."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE transactions
+                SET decision = ?, risk_score = ?, reason = ?
+                WHERE transaction_id = ?
+            """, (decision, risk_score, reason, transaction_id))
+            conn.commit()
+
     def get_account_history(self, account_id: str):
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row

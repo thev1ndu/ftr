@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     OPENAI_API_KEY: str
     DB_PATH: str = "transactions.db"
+    # LangGraph HITL state; use one path so you don't get multiple checkpoints.db in different cwds
+    CHECKPOINTS_DB_PATH: str = "checkpoints.db"
     
     class Config:
         env_file = ".env"

@@ -19,6 +19,7 @@ coverage.xml
 .mypy_cache
 .pytest_cache
 .hypotheses
+# LangGraph HITL state; path configurable via CHECKPOINTS_DB_PATH
 checkpoints.db
 transactions.db
 .env

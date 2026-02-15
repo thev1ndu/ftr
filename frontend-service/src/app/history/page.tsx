@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { lookupHistory, TransactionHistoryItem } from "@/services/fraudService";
+import Button from '@/components/ui/Button';
 
 export default function LookupPage() {
     const [accountId, setAccountId] = useState('');
@@ -81,13 +82,14 @@ export default function LookupPage() {
                                     className="block w-full px-0 py-3 bg-transparent border-0 border-b border-[#48286c]/15 text-[#48286c] text-base font-light placeholder:text-[#48286c]/20 focus:outline-none focus:border-[#48286c]/40 transition-colors"
                                 />
                             </div>
-                            <button 
+                            <Button
+                                variant="primary"
                                 onClick={handleLookup}
                                 disabled={loading || !accountId}
-                                className="w-full md:w-auto px-8 py-3 bg-[#48286c] text-white text-sm font-light tracking-wide uppercase rounded-sm shadow-[0_1px_2px_rgba(72,40,108,0.15)] hover:bg-[#3a1f59] hover:shadow-[0_2px_4px_rgba(72,40,108,0.2)] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+                                className="w-full md:w-auto"
                             >
                                 {loading ? 'Searching...' : 'Search History'}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>

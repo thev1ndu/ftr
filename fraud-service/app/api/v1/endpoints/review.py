@@ -1,9 +1,12 @@
+import json
+import logging
 from fastapi import APIRouter, HTTPException
 from app.models.review import ReviewRequest
 from app.services.fraud.ai.agent import workflow
+from app.services.fraud.history import history_service
+from app.core.config import get_settings
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -13,8 +16,8 @@ async def review_transaction(transaction_id: str, request: ReviewRequest):
     logger.info(f"Received review for {transaction_id}: {request.action}")
     
     config = {"configurable": {"thread_id": transaction_id}}
-    
-    async with AsyncSqliteSaver.from_conn_string("checkpoints.db") as checkpointer:
+    settings = get_settings()
+    async with AsyncSqliteSaver.from_conn_string(settings.CHECKPOINTS_DB_PATH) as checkpointer:
         agent = workflow.compile(checkpointer=checkpointer, interrupt_before=["human_review"])
         
         # Check current state
@@ -43,10 +46,29 @@ async def review_transaction(transaction_id: str, request: ReviewRequest):
         # Resume execution
         logger.info(f"Resuming execution for {transaction_id}")
         final_state = await agent.ainvoke(None, config=config)
-        
-        # Extract final decision from the new AI output
+
         output_text = final_state["messages"][-1].content
-        
+        decision, score, reason = "REVIEW", 50, "Processed by reviewer"
+        try:
+            if "```json" in output_text:
+                raw = output_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in output_text:
+                raw = output_text.split("```")[1].strip()
+            else:
+                raw = output_text
+            data = json.loads(raw)
+            decision = data.get("decision", request.action if request.action == "DECLINE" else "ALLOW")
+            if request.action == "DECLINE":
+                decision = "BLOCK"
+            elif request.action == "APPROVE":
+                decision = "ALLOW"
+            score = data.get("score", 90 if decision == "BLOCK" else 10)
+            reason = data.get("reason", reason)
+        except json.JSONDecodeError:
+            decision = "ALLOW" if request.action == "APPROVE" else "BLOCK"
+            score = 10 if decision == "ALLOW" else 90
+        history_service.update_transaction_decision(transaction_id, decision, float(score), reason)
+
         return {
             "status": "PROCESSED",
             "ai_response": output_text

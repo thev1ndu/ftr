@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FraudCheckResponse, reviewTransaction } from "@/services/fraudService";
+import Button from '@/components/ui/Button';
 
 interface TransactionResultProps {
   result: FraudCheckResponse;
@@ -144,20 +145,20 @@ export default function TransactionResult({ result, amount, onReset, onUpdate }:
                     onChange={(e) => setReviewReason(e.target.value)}
                 ></textarea>
                 <div className="flex gap-3">
-                    <button 
+                    <Button
+                        variant="success"
                         onClick={() => handleReview('APPROVE')}
                         disabled={isReviewing}
-                        className="flex-1 bg-emerald-600 text-white text-xs font-light py-3 rounded-sm tracking-wide uppercase hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
                         {isReviewing ? 'Processing...' : 'Approve'}
-                    </button>
-                    <button 
+                    </Button>
+                    <Button
+                        variant="danger"
                         onClick={() => handleReview('DECLINE')}
                         disabled={isReviewing}
-                        className="flex-1 bg-rose-600 text-white text-xs font-light py-3 rounded-sm tracking-wide uppercase hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
                         {isReviewing ? 'Processing...' : 'Decline'}
-                    </button>
+                    </Button>
                 </div>
             </div>
         )}
@@ -175,19 +176,13 @@ export default function TransactionResult({ result, amount, onReset, onUpdate }:
 
       {/* Action Footer */}
       <div className="bg-gradient-to-b from-transparent to-[#48286c]/[0.02] p-6 border-t border-[#48286c]/10 flex justify-end gap-3">
-         <button
-          onClick={onReset}
-          className="px-6 py-3 bg-white border border-[#48286c]/15 text-[#48286c]/70 text-sm font-light tracking-wide rounded-sm shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:bg-[#48286c]/[0.02] hover:border-[#48286c]/25 focus:outline-none focus:ring-2 focus:ring-[#48286c]/20 focus:ring-offset-2 transition-all"
-        >
+        <Button variant="secondary" onClick={onReset}>
           Close Receipt
-        </button>
+        </Button>
         {!isPending && (
-            <button
-            onClick={onReset}
-            className="px-6 py-3 bg-[#48286c] text-white text-sm font-light tracking-wide rounded-sm shadow-[0_1px_2px_rgba(72,40,108,0.15)] hover:bg-[#3a1f59] hover:shadow-[0_2px_4px_rgba(72,40,108,0.2)] focus:outline-none focus:ring-2 focus:ring-[#48286c]/30 focus:ring-offset-2 transition-all duration-200"
-            >
+          <Button variant="primary" onClick={onReset}>
             New Transaction
-            </button>
+          </Button>
         )}
       </div>
     </div>

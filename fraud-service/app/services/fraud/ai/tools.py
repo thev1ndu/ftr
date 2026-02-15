@@ -13,24 +13,18 @@ def get_recent_transaction_count(account_id: str, minutes: int = 10) -> int:
     try:
         settings = get_settings()
         db_path = settings.DB_PATH
-        # Calculate the timestamp threshold
         threshold_time = datetime.now() - timedelta(minutes=minutes)
-        
+        threshold_str = threshold_time.strftime("%Y-%m-%d %H:%M:%S")
+
         with sqlite3.connect(db_path) as conn:
             cursor = conn.cursor()
-            # We look for messages in chat_history where role='user' and session_id=account_id
-            # and timestamp > threshold.
-            
             cursor.execute("""
-                SELECT COUNT(*) FROM chat_history 
-                WHERE session_id = ? 
-                AND role = 'user' 
-                AND timestamp >= ?
-            """, (account_id, threshold_time))
-            
+                SELECT COUNT(*) FROM transactions
+                WHERE from_account = ? AND timestamp IS NOT NULL AND timestamp >= ?
+            """, (account_id, threshold_str))
             count = cursor.fetchone()[0]
             return count
-            
+
     except Exception as e:
         return f"Error checking transaction count: {str(e)}"
 
@@ -42,22 +36,17 @@ def _check_beneficiary_history_logic(from_account: str, to_account: str) -> str:
         db_path = settings.DB_PATH
         with sqlite3.connect(db_path) as conn:
             cursor = conn.cursor()
-            search_pattern = f"%To: {to_account}%"
-            
             cursor.execute("""
-                SELECT COUNT(*) FROM chat_history 
-                WHERE session_id = ? 
-                AND role = 'user' 
-                AND content LIKE ?
-            """, (from_account, search_pattern))
-            
+                SELECT COUNT(*) FROM transactions
+                WHERE from_account = ? AND to_account = ?
+            """, (from_account, to_account))
             count = cursor.fetchone()[0]
-            
+
             if count > 0:
                 return f"History Found: {count} previous transactions to {to_account}."
             else:
                 return "No previous transactions found to this beneficiary. Logic: New Beneficiary Risk."
-            
+
     except Exception as e:
         return f"Error checking beneficiary history: {str(e)}"
 

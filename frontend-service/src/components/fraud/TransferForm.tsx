@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Button from '@/components/ui/Button';
 
 interface TransferFormProps {
   onScan: (amount: number, deviceId: string, fromAccount: string, toAccount: string) => void;
@@ -150,12 +151,9 @@ export default function TransferForm({ onScan }: TransferFormProps) {
           </div>
 
           <div className="pt-4 flex justify-end">
-            <button
-                type="submit"
-                className="px-8 py-3 bg-[#48286c] text-white rounded-sm text-sm font-light tracking-wide uppercase shadow-[0_1px_2px_rgba(72,40,108,0.15)] hover:bg-[#3a1f59] hover:shadow-[0_2px_4px_rgba(72,40,108,0.2)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#48286c]/30 transition-all duration-200"
-            >
-                Process Transaction
-            </button>
+            <Button type="submit" variant="primary">
+              Process Transaction
+            </Button>
           </div>
         </form>
       </div>

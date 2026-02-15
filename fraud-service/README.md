@@ -43,7 +43,9 @@ The service evaluates transactions through a 3-step process:
     OPENAI_API_KEY=sk-your-api-key-here
     LOG_LEVEL=INFO
     DB_PATH=transactions.db
+    CHECKPOINTS_DB_PATH=checkpoints.db
     ```
+    - `CHECKPOINTS_DB_PATH`: SQLite DB for LangGraph HITL state (so the agent can pause for human review and resume later). Defaults to `checkpoints.db`. Use an **absolute path** (e.g. `/var/data/checkpoints.db`) if you run the app from different directories and want a single DB.
 
 ## Running the Service
 
