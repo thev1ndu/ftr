@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FraudCheckResponse, reviewTransaction } from "@/services/fraudService";
+import { FraudCheckResponse, reviewTransaction } from '@/services/fraudService';
 import Button from '@/components/ui/Button';
 
 interface TransactionResultProps {
@@ -11,177 +11,190 @@ interface TransactionResultProps {
   onUpdate: (newResult: FraudCheckResponse) => void;
 }
 
+function StatusIcon({ decision }: { decision: string }) {
+  if (decision === 'ALLOW')
+    return (
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--ifs-teal-muted)] text-[var(--ifs-teal)]">
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    );
+  if (decision === 'PENDING_REVIEW')
+    return (
+      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--ifs-orange-muted)] text-[var(--ifs-orange)]">
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </span>
+    );
+  return (
+    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-500">
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </span>
+  );
+}
+
 export default function TransactionResult({ result, amount, onReset, onUpdate }: TransactionResultProps) {
-  const isFraud = result.is_fraud;
   const decision = result.decision;
   const isPending = decision === 'PENDING_REVIEW';
-  const score = result.risk_score || 0;
-  
-  const [reviewReason, setReviewReason] = useState("");
+  const score = result.risk_score ?? 0;
+  const isFraud = result.is_fraud;
+
+  const [reviewReason, setReviewReason] = useState('');
   const [isReviewing, setIsReviewing] = useState(false);
 
-  // Define risk level colors
-  const getRiskColor = (s: number) => {
-    if (s < 20) return "text-emerald-600";
-    if (s < 70) return "text-amber-600";
-    return "text-black-600";
-  };
-  
   const handleReview = async (action: 'APPROVE' | 'DECLINE') => {
-      if (!reviewReason.trim()) {
-          alert("Please provide a reason for your decision.");
-          return;
-      }
-      setIsReviewing(true);
-      try {
-          const newResult = await reviewTransaction(result.transaction_id, action, reviewReason);
-          onUpdate(newResult);
-      } catch (error) {
-          console.error("Review failed", error);
-          alert("Failed to submit review. Please try again.");
-      } finally {
-          setIsReviewing(false);
-      }
+    if (!reviewReason.trim()) {
+      alert('Please provide a reason for your decision.');
+      return;
+    }
+    setIsReviewing(true);
+    try {
+      const newResult = await reviewTransaction(result.transaction_id, action, reviewReason);
+      onUpdate(newResult);
+    } catch (error) {
+      console.error('Review failed', error);
+      alert('Failed to submit review. Please try again.');
+    } finally {
+      setIsReviewing(false);
+    }
   };
-  
-  const riskColorClass = getRiskColor(score);
-  const riskLabel = score < 20 ? "Low Risk" : score < 70 ? "Medium Risk" : "High Risk";
-  
-  // Dynamic Styles based on status
-  let statusBg = "bg-emerald-500/5 border-emerald-500/20";
-  let statusText = "text-emerald-700";
-  let statusTitle = "Payment Processed Successfully";
-  let statusDesc = "The transaction has passed all security checks and has been sent to the beneficiary.";
-  let badgeBg = "bg-emerald-500/10 text-emerald-700 border-emerald-500/20";
-  let badgeText = "Transfer Successful";
 
+  const riskLabel = score < 20 ? 'Low risk' : score < 70 ? 'Medium risk' : 'High risk';
+  const riskBarColor =
+    score < 20 ? 'bg-[var(--ifs-teal)]' : score < 70 ? 'bg-[var(--ifs-orange)]' : 'bg-red-500';
+
+  let statusConfig = {
+    title: 'Payment processed',
+    description: 'The transaction passed all checks and was sent to the beneficiary.',
+    badge: 'Approved',
+    containerClass: 'bg-[var(--ifs-teal-muted)] border-[var(--ifs-teal)]/30 text-[#008f6b]',
+    badgeClass: 'rounded-full bg-[var(--ifs-teal-muted)] text-[var(--ifs-teal)] border-0',
+  };
   if (isPending) {
-      statusBg = "bg-amber-500/5 border-amber-500/20";
-      statusText = "text-amber-700";
-      statusTitle = "Manual Review Required";
-      statusDesc = "This transaction has been flagged for manual review due to high risk factors. Please approve or decline below.";
-      badgeBg = "bg-amber-500/10 text-amber-700 border-amber-500/20";
-      badgeText = "Pending Review";
+    statusConfig = {
+      title: 'Manual review required',
+      description:
+        'This transaction was flagged for review. Approve or decline below with a reason.',
+      badge: 'Pending review',
+      containerClass: 'bg-[var(--ifs-orange-muted)] border-[var(--ifs-orange)]/30 text-[#b45309]',
+      badgeClass: 'rounded-full bg-[var(--ifs-orange-muted)] text-[var(--ifs-orange)] border-0',
+    };
   } else if (isFraud) {
-      statusBg = "bg-rose-500/5 border-rose-500/20";
-      statusText = "text-rose-700";
-      statusTitle = "Transaction Blocked";
-      statusDesc = "Our security systems have flagged this transaction as high risk. No funds have been deducted.";
-      badgeBg = "bg-rose-500/10 text-rose-700 border-rose-500/20";
-      badgeText = "Security Alert";
+    statusConfig = {
+      title: 'Transaction blocked',
+      description: 'This transaction was flagged as high risk. No funds were deducted.',
+      badge: 'Blocked',
+      containerClass: 'bg-red-50 border-red-200/80 text-red-800',
+      badgeClass: 'rounded-full bg-red-100 text-red-600 border-0',
+    };
   }
 
   return (
-    <div className="w-full max-w-2xl bg-white border border-black/10 rounded-none shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
-      
-      {/* Header Panel */}
-      <div className="bg-gradient-to-b from-[#48286c]/[0.02] to-transparent px-6 py-5 border-b border-[#48286c]/10 flex justify-between items-center">
+    <div className="rounded-3xl bg-white border border-[var(--card-border)] shadow-[var(--card-shadow)] overflow-hidden">
+      <div className="flex items-center justify-between border-b border-neutral-100 bg-neutral-50/60 px-6 py-4">
         <div>
-           <h2 className="text-lg font-light text-[#48286c] tracking-tight">Transaction Receipt</h2>
-           <p className="text-[10px] text-[#48286c]/40 tracking-widest uppercase mt-0.5">Final Status Report</p>
+          <h2 className="text-base font-semibold text-neutral-900">Transaction receipt</h2>
+          <p className="text-xs text-neutral-500 mt-0.5">Final status</p>
         </div>
-        <div className={`px-3 py-1.5 text-[9px] font-medium uppercase tracking-wider rounded-sm border ${badgeBg}`}>
-            {badgeText}
-        </div>
+        <span
+          className={`px-3 py-1 text-xs font-medium ${statusConfig.badgeClass}`}
+        >
+          {statusConfig.badge}
+        </span>
       </div>
 
-      <div className="p-8 space-y-8">
-        
-        {/* Status Banner - Minimal */}
-        <div className={`p-5 rounded-sm border ${statusBg}`}>
-             <div>
-                 <h3 className={`text-base font-light ${statusText} tracking-tight mb-2`}>
-                    {statusTitle}
-                 </h3>
-                 <p className={`text-sm font-light ${statusText}/70 text-black leading-relaxed`}>
-                    {statusDesc}
-                 </p>
-             </div>
+      <div className="p-6 space-y-5">
+        <div
+          className={`flex gap-3 rounded-2xl border p-4 ${statusConfig.containerClass}`}
+        >
+          <StatusIcon decision={decision} />
+          <div>
+            <h3 className="font-semibold text-current">{statusConfig.title}</h3>
+            <p className="mt-1 text-sm opacity-90">{statusConfig.description}</p>
+          </div>
         </div>
 
-        {/* Details Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
-            {/* Amount */}
-            <div>
-                 <label className="block text-[10px] font-light text-[#48286c]/50 uppercase tracking-widest mb-3">Total Amount</label>
-                 <div className="text-3xl font-light text-[#48286c] tracking-tight">${amount.toFixed(2)}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">
+              Amount
+            </p>
+            <p className="text-xl font-semibold text-neutral-900">${amount.toFixed(2)}</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-2">
+              Risk score
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-100">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${riskBarColor}`}
+                  style={{ width: `${score}%` }}
+                />
+              </div>
+              <span className="text-sm font-medium text-neutral-700 tabular-nums">{score}/100</span>
             </div>
-
-            {/* Risk Score */}
-            <div>
-                 <label className="block text-[10px] font-light text-[#48286c]/50 uppercase tracking-widest mb-3">Risk Analysis</label>
-                 <div className="flex items-center gap-3">
-                    <div className="h-[2px] flex-1 bg-[#48286c]/5 rounded-full overflow-hidden">
-                        <div className={`h-full transition-all duration-500 ${
-                             score < 20 ? 'bg-emerald-500' : score < 70 ? 'bg-amber-500' : 'bg-rose-500'
-                        }`} style={{ width: `${score}%` }}></div>
-                    </div>
-                    <span className={`text-sm font-light ${getRiskColor(score)}`}>{score}/100</span>
-                 </div>
-                 <p className="text-[10px] text-[#48286c]/30 mt-2 uppercase tracking-wide font-light">{riskLabel}</p>
-            </div>
+            <p className="mt-1 text-xs text-neutral-500">{riskLabel}</p>
+          </div>
         </div>
 
-        {/* System Output */}
         <div>
-             <label className="block text-[10px] font-light text-[#48286c]/50 uppercase tracking-widest mb-3">Engine Report</label>
-             <div className="bg-[#48286c]/[0.02] rounded-sm border border-[#48286c]/10 p-4">
-                 <p className="text-sm text-[#48286c]/70 font-light font-mono leading-relaxed">
-                    {result.reason}
-                 </p>
-             </div>
+          <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-2">
+            Engine report
+          </p>
+          <div className="rounded-2xl bg-neutral-50 border border-neutral-100 p-4">
+            <p className="text-sm text-neutral-600 leading-relaxed">{result.reason}</p>
+          </div>
         </div>
-        
-        {/* Review Action Section */}
+
         {isPending && (
-            <div className="mt-2 p-5 bg-[#48286c]/[0.02] border border-[#48286c]/10 rounded-sm">
-                <label className="block text-[10px] font-light text-[#48286c]/50 uppercase tracking-widest mb-3">Review Action</label>
-                <textarea 
-                    className="w-full text-sm font-light p-3 border border-[#48286c]/15 rounded-sm mb-4 focus:ring-1 focus:ring-[#48286c]/30 focus:border-[#48286c]/40 outline-none text-[#48286c] bg-white placeholder:text-[#48286c]/20 transition-all"
-                    placeholder="Enter reason for approval or rejection"
-                    rows={2}
-                    value={reviewReason}
-                    onChange={(e) => setReviewReason(e.target.value)}
-                ></textarea>
-                <div className="flex gap-3">
-                    <Button
-                        variant="success"
-                        onClick={() => handleReview('APPROVE')}
-                        disabled={isReviewing}
-                    >
-                        {isReviewing ? 'Processing...' : 'Approve'}
-                    </Button>
-                    <Button
-                        variant="danger"
-                        onClick={() => handleReview('DECLINE')}
-                        disabled={isReviewing}
-                    >
-                        {isReviewing ? 'Processing...' : 'Decline'}
-                    </Button>
-                </div>
+          <div className="rounded-2xl border border-[var(--ifs-orange)]/30 bg-[var(--ifs-orange-muted)] p-4">
+            <p className="text-xs font-medium text-neutral-600 uppercase tracking-wider mb-2">
+              Your decision
+            </p>
+            <textarea
+              value={reviewReason}
+              onChange={(e) => setReviewReason(e.target.value)}
+              placeholder="Enter reason for approval or rejection…"
+              rows={3}
+              className="mb-3 w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-sm placeholder:text-neutral-400 focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20 focus:outline-none"
+            />
+            <div className="flex gap-3">
+              <Button
+                variant="success"
+                onClick={() => handleReview('APPROVE')}
+                disabled={isReviewing}
+              >
+                {isReviewing ? 'Processing…' : 'Approve'}
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => handleReview('DECLINE')}
+                disabled={isReviewing}
+              >
+                {isReviewing ? 'Processing…' : 'Decline'}
+              </Button>
             </div>
+          </div>
         )}
 
-        {/* Footer Info */}
-        <div className="pt-6 border-t border-[#48286c]/5 flex justify-between items-center">
-            <div className="text-[10px] text-[#48286c]/30 font-mono font-light tracking-wide">
-                REF: {result.transaction_id}
-            </div>
-            <div className="text-[10px] text-[#48286c]/30 font-light">
-                {new Date().toISOString()}
-            </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-neutral-100 text-xs text-neutral-400">
+          <span className="font-mono">REF: {result.transaction_id}</span>
+          <time dateTime={new Date().toISOString()}>{new Date().toLocaleString()}</time>
         </div>
       </div>
 
-      {/* Action Footer */}
-      <div className="bg-gradient-to-b from-transparent to-[#48286c]/[0.02] p-6 border-t border-[#48286c]/10 flex justify-end gap-3">
+      <div className="flex flex-wrap justify-end gap-2 border-t border-neutral-100 bg-neutral-50/50 px-6 py-4">
         <Button variant="secondary" onClick={onReset}>
-          Close Receipt
+          Close receipt
         </Button>
         {!isPending && (
           <Button variant="primary" onClick={onReset}>
-            New Transaction
+            New transaction
           </Button>
         )}
       </div>

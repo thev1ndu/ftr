@@ -1,229 +1,266 @@
 'use client';
 
-import { useState } from 'react';
-import { lookupHistory, TransactionHistoryItem } from "@/services/fraudService";
+import { useState, useCallback, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { lookupHistory, TransactionHistoryItem } from '@/services/fraudService';
 import Button from '@/components/ui/Button';
 
+const SEARCH_DEBOUNCE_MS = 400;
+
+function StatusBadge({ decision }: { decision: string }) {
+  const map: Record<string, { label: string; class: string }> = {
+    ALLOW: { label: 'Approved', class: 'bg-[var(--ifs-teal-muted)] text-[var(--ifs-teal)]' },
+    BLOCK: { label: 'Blocked', class: 'bg-red-100 text-red-600' },
+    REVIEW: { label: 'Review', class: 'bg-[var(--ifs-orange-muted)] text-[var(--ifs-orange)]' },
+    PENDING_REVIEW: { label: 'Pending', class: 'bg-[var(--ifs-orange-muted)] text-[var(--ifs-orange)]' },
+  };
+  const c = map[decision] ?? { label: decision, class: 'bg-neutral-100 text-neutral-600' };
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${c.class}`}>
+      {c.label}
+    </span>
+  );
+}
+
 export default function LookupPage() {
-    const [accountId, setAccountId] = useState('');
-    const [history, setHistory] = useState<TransactionHistoryItem[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+  const [accountId, setAccountId] = useState('');
+  const [history, setHistory] = useState<TransactionHistoryItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const handleLookup = async () => {
-        if (!accountId.trim()) return;
-        
-        setLoading(true);
-        setError('');
-        try {
-            const data = await lookupHistory(accountId);
-            setHistory(data);
-        } catch (err) {
-            setError('Failed to fetch history. Please check the account ID.');
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
+  const handleLookup = useCallback(
+    async (overrideAccountId?: string) => {
+      const id = (overrideAccountId ?? accountId).trim();
+      if (!id) return;
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+      setLoading(true);
+      setError('');
+      try {
+        const data = await lookupHistory(id);
+        setHistory(data);
+      } catch (err) {
+        setError('Failed to fetch history. Please check the account ID.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [accountId]
+  );
+
+  useEffect(() => {
+    const id = accountId.trim();
+    if (!id) return;
+    debounceRef.current = setTimeout(() => {
+      handleLookup(accountId);
+      debounceRef.current = null;
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
+  }, [accountId, handleLookup]);
 
-    const totalSent = history
-        .filter(tx => tx.from_account === accountId && tx.decision !== 'BLOCK')
-        .reduce((sum, tx) => sum + tx.amount, 0);
+  const totalSent = history
+    .filter((tx) => tx.from_account === accountId && tx.decision !== 'BLOCK')
+    .reduce((sum, tx) => sum + tx.amount, 0);
+  const totalReceived = history
+    .filter((tx) => tx.to_account === accountId && tx.decision !== 'BLOCK')
+    .reduce((sum, tx) => sum + tx.amount, 0);
 
-    const totalReceived = history
-        .filter(tx => tx.to_account === accountId && tx.decision !== 'BLOCK')
-        .reduce((sum, tx) => sum + tx.amount, 0);
+  return (
+    <div className="min-h-screen flex flex-col items-center p-6 md:p-10 relative bg-[var(--background)]">
+      <div
+        className="absolute inset-0 bg-[linear-gradient(rgba(109,40,217,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(109,40,217,0.03)_1px,transparent_1px)] bg-[size:32px_32px]"
+        aria-hidden
+      />
 
-    return (
-        <div className="min-h-screen bg-white flex items-center justify-center p-6 relative overflow-hidden">
-            
-            {/* Subtle grid background */}
-            <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]"></div>
-            
-            {/* Minimal accent element */}
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent"></div>
+      <div className="relative z-10 w-full max-w-4xl">
+        <header className="mb-8 text-center">
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-neutral-900 mb-1.5">
+            Transaction History
+          </h1>
+          <p className="text-sm text-neutral-500 mb-5">Complete record by account</p>
+          <nav className="inline-flex items-center gap-0.5 rounded-full bg-[var(--nav-bg)] backdrop-blur-sm border border-neutral-200/80 px-1 py-1 shadow-sm">
+            <Link
+              href="/"
+              className="text-xs font-medium text-neutral-600 hover:text-[var(--brand)] transition-colors rounded-full px-3 py-1.5 hover:bg-[var(--brand-muted)]"
+            >
+              Transfer
+            </Link>
+            <span className="text-xs font-medium text-[var(--brand)] bg-[var(--brand-muted)] rounded-full px-3 py-1.5">History</span>
+          </nav>
+        </header>
 
-            <div className="relative z-10 w-full max-w-4xl">
-                
-                {/* Header */}
-                <div className="mb-16 text-center">
-                    <h1 className="text-4xl md:text-5xl font-light tracking-tight text-black mb-3">
-                        Transaction History
-                    </h1>
-                    <div className="flex items-center justify-center gap-2 text-sm text-black/40">
-                        <p>Complete historical record</p>
-                    </div>
-                    <div className="flex items-center justify-center mt-4 gap-2 text-sm text-black/40">
-                        <a href='/' className='text-[#48286c] hover:text-[#3a1f59] underline transition-colors font-light'>/transfer</a>
-                    </div>
-                </div>
-
-                {/* Search Box */}
-                <div className="w-full max-w-2xl mx-auto bg-white border border-black/10 rounded-none shadow-[0_1px_3px_rgba(0,0,0,0.03)] mb-8">
-                    <div className="bg-gradient-to-b from-[#48286c]/[0.02] to-transparent px-6 py-5 border-b border-[#48286c]/10">
-                        <div>
-                            <h2 className="text-lg font-light text-[#48286c] tracking-tight">Search Account</h2>
-                            <p className="text-[10px] text-[#48286c]/40 tracking-widest uppercase mt-0.5">Lookup Transaction History</p>
-                        </div>
-                    </div>
-                    
-                    <div className="p-6">
-                        <div className="flex flex-col md:flex-row gap-6 items-end">
-                            <div className="flex-1 w-full">
-                                <label className="block text-[11px] font-light text-[#48286c]/60 mb-2 tracking-wide uppercase">
-                                    Account ID
-                                </label>
-                                <input 
-                                    type="text" 
-                                    value={accountId}
-                                    onChange={(e) => setAccountId(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
-                                    placeholder="e.g. ACC-123456"
-                                    className="block w-full px-0 py-3 bg-transparent border-0 border-b border-[#48286c]/15 text-[#48286c] text-base font-light placeholder:text-[#48286c]/20 focus:outline-none focus:border-[#48286c]/40 transition-colors"
-                                />
-                            </div>
-                            <Button
-                                variant="primary"
-                                onClick={handleLookup}
-                                disabled={loading || !accountId}
-                                className="w-full md:w-auto"
-                            >
-                                {loading ? 'Searching...' : 'Search History'}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Error Message */}
-                {error && (
-                    <div className="w-full max-w-2xl mx-auto mb-8 p-5 bg-rose-500/5 border border-rose-500/20 text-rose-700 rounded-sm text-sm font-light">
-                        {error}
-                    </div>
-                )}
-
-                {/* Account Summary */}
-                {history.length > 0 && (
-                    <div className="w-full max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                        <div className="bg-white p-6 border border-[#48286c]/10 rounded-sm shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex justify-between items-center">
-                            <div>
-                                <p className="text-[10px] font-light text-[#48286c]/50 uppercase tracking-widest mb-2">Total Sent</p>
-                                <p className="text-2xl font-light text-[#48286c] tracking-tight">
-                                    ${totalSent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="bg-white p-6 border border-[#48286c]/10 rounded-sm shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex justify-between items-center">
-                            <div>
-                                <p className="text-[10px] font-light text-[#48286c]/50 uppercase tracking-widest mb-2">Total Received</p>
-                                <p className="text-2xl font-light text-[#48286c] tracking-tight">
-                                    ${totalReceived.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Results Table */}
-                {history.length > 0 && (
-                    <div className="w-full max-w-2xl mx-auto bg-white border border-black/10 rounded-none shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden">
-                        <div className="bg-gradient-to-b from-[#48286c]/[0.02] to-transparent px-6 py-5 border-b border-[#48286c]/10">
-                            <h2 className="text-lg font-light text-[#48286c] tracking-tight">Transaction Records</h2>
-                            <p className="text-[10px] text-[#48286c]/40 tracking-widest uppercase mt-0.5">{history.length} Total Transactions</p>
-                        </div>
-                        
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-gradient-to-b from-[#48286c]/[0.02] to-transparent border-b border-[#48286c]/10">
-                                    <tr>
-                                        <th className="px-6 py-4 font-light text-[#48286c]/50 uppercase tracking-widest text-[10px]">Date</th>
-                                        <th className="px-6 py-4 font-light text-[#48286c]/50 uppercase tracking-widest text-[10px]">Type</th>
-                                        <th className="px-6 py-4 font-light text-[#48286c]/50 uppercase tracking-widest text-[10px] text-right">Amount</th>
-                                        <th className="px-6 py-4 font-light text-[#48286c]/50 uppercase tracking-widest text-[10px] text-center">Status</th>
-                                        <th className="px-6 py-4 font-light text-[#48286c]/50 uppercase tracking-widest text-[10px]">Counterparty</th>
-                                        <th className="px-6 py-4 font-light text-[#48286c]/50 uppercase tracking-widest text-[10px]">Risk</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-[#48286c]/5">
-                                    {history.map((tx) => {
-                                        const isOutgoing = tx.from_account === accountId;
-                                        const date = new Date(tx.timestamp).toLocaleString();
-                                        
-                                        return (
-                                            <tr key={tx.transaction_id} className="hover:bg-[#48286c]/[0.02] transition-colors">
-                                                <td className="px-6 py-4 text-[#48286c]/60 font-light whitespace-nowrap text-sm">{date}</td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center px-3 py-1 rounded-sm text-[10px] font-light uppercase tracking-wider border ${
-                                                        isOutgoing 
-                                                            ? 'bg-amber-500/5 text-amber-700 border-amber-500/20' 
-                                                            : 'bg-emerald-500/5 text-emerald-700 border-emerald-500/20'
-                                                    }`}>
-                                                        {isOutgoing ? 'Outgoing' : 'Incoming'}
-                                                    </span>
-                                                </td>
-                                                <td className={`px-6 py-4 text-right font-light text-base ${isOutgoing ? 'text-[#48286c]' : 'text-emerald-700'}`}>
-                                                    {isOutgoing ? '-' : '+'}${tx.amount.toFixed(2)}
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    {tx.decision === 'ALLOW' && <span className="text-emerald-600 font-light text-xs uppercase tracking-wide">Approved</span>}
-                                                    {tx.decision === 'BLOCK' && <span className="text-rose-600 font-light text-xs uppercase tracking-wide">Blocked</span>}
-                                                    {tx.decision === 'REVIEW' && <span className="text-amber-600 font-light text-xs uppercase tracking-wide">Review</span>}
-                                                    {tx.decision === 'PENDING_REVIEW' && <span className="text-amber-600 font-light text-xs uppercase tracking-wide">Pending</span>}
-                                                </td>
-                                                <td className="px-6 py-4 text-[#48286c]/60 font-light font-mono text-xs">
-                                                    {isOutgoing ? tx.to_account : tx.from_account}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-20 h-[2px] bg-[#48286c]/5 rounded-full overflow-hidden">
-                                                            <div 
-                                                                className={`h-full transition-all ${
-                                                                    tx.risk_score < 20 ? 'bg-emerald-500' : 
-                                                                    tx.risk_score < 70 ? 'bg-amber-500' : 'bg-rose-500'
-                                                                }`} 
-                                                                style={{ width: `${tx.risk_score}%` }}
-                                                            ></div>
-                                                        </div>
-                                                        <span className="text-xs font-light text-[#48286c]/40 tabular-nums">{tx.risk_score}</span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-                
-                {history.length === 0 && !loading && accountId && !error && (
-                    <div className="text-center py-20">
-                        <div className="inline-flex flex-col items-center gap-3">
-                            <div className="w-2 h-2 rounded-full bg-[#48286c]/10"></div>
-                            <p className="text-sm font-light text-[#48286c]/30 tracking-wide">No transactions found for this account</p>
-                        </div>
-                    </div>
-                )}
-
-                {/* Footer hint */}
-                {!accountId && (
-                    <div className="text-center py-12">
-                        <div className="inline-flex items-center gap-2 text-[10px] text-[#48286c]/20 tracking-widest uppercase">
-                            <span>Enter account ID to begin</span>
-                        </div>
-                    </div>
-                )}
-
-                {/* Footer mark */}
-                <div className="mt-20 text-center">
-                    <div className="inline-flex items-center gap-2 text-xs text-black/20">
-                        <span>Secured</span>
-                        <div className="w-1 h-1 rounded-full bg-black/10"></div>
-                        <span>Verified</span>
-                        <div className="w-1 h-1 rounded-full bg-black/10"></div>
-                        <span>Protected</span>
-                    </div>
-                </div>
+        <div className="rounded-3xl bg-white border border-[var(--card-border)] shadow-[var(--card-shadow)] overflow-hidden mb-6">
+          <div className="border-b border-neutral-100 bg-neutral-50/60 px-6 py-4">
+            <h2 className="text-base font-semibold text-neutral-900">Search account</h2>
+            <p className="text-xs text-neutral-500 mt-0.5">Look up transaction history by account ID</p>
+          </div>
+          <div className="p-6">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <input
+                  id="accountId"
+                  type="text"
+                  value={accountId}
+                  onChange={(e) => setAccountId(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+                  placeholder="e.g. acc_user_001"
+                  className="block w-full rounded-full border border-neutral-200 bg-white px-4 py-2.5 text-neutral-800 text-sm placeholder:text-neutral-400 focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20 focus:outline-none transition-colors"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  variant="primary"
+                  onClick={() => handleLookup()}
+                  disabled={loading || !accountId.trim()}
+                  className="w-full sm:w-auto min-w-[120px]"
+                >
+                  {loading ? 'Searching…' : 'Search'}
+                </Button>
+              </div>
             </div>
+          </div>
         </div>
-    );
+
+        {error && (
+          <div className="mb-5 rounded-full border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {history.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+            <div className="rounded-3xl bg-white border border-[var(--card-border)] shadow-[var(--card-shadow)] p-6">
+              <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">
+                Total sent
+              </p>
+              <p className="text-xl font-semibold text-neutral-900">
+                ${totalSent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </div>
+            <div className="rounded-3xl bg-white border border-[var(--card-border)] shadow-[var(--card-shadow)] p-6">
+              <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-1">
+                Total received
+              </p>
+              <p className="text-xl font-semibold text-neutral-900">
+                ${totalReceived.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {history.length > 0 && (
+          <div className="rounded-3xl bg-white border border-[var(--card-border)] shadow-[var(--card-shadow)] overflow-hidden">
+            <div className="border-b border-neutral-100 bg-neutral-50/60 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-neutral-900">Transactions</h2>
+                <p className="text-xs text-neutral-500 mt-0.5">{history.length} records</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-neutral-100 bg-neutral-50/60">
+                    <th className="px-5 py-2.5 text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-5 py-2.5 text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th className="px-5 py-2.5 text-xs font-medium text-neutral-500 uppercase tracking-wider text-right">
+                      Amount
+                    </th>
+                    <th className="px-5 py-2.5 text-xs font-medium text-neutral-500 uppercase tracking-wider text-center">
+                      Status
+                    </th>
+                    <th className="px-5 py-2.5 text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                      Counterparty
+                    </th>
+                    <th className="px-5 py-2.5 text-xs font-medium text-neutral-500 uppercase tracking-wider w-20">
+                      Risk
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {history.map((tx) => {
+                    const isOutgoing = tx.from_account === accountId;
+                    const date = new Date(tx.timestamp).toLocaleString();
+                    return (
+                      <tr
+                        key={tx.transaction_id}
+                        className="hover:bg-neutral-50/50 transition-colors"
+                      >
+                        <td className="px-5 py-3 text-neutral-600 whitespace-nowrap">{date}</td>
+                        <td className="px-5 py-3">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              isOutgoing
+                                ? 'bg-[var(--ifs-orange-muted)] text-[var(--ifs-orange)]'
+                                : 'bg-[var(--ifs-teal-muted)] text-[var(--ifs-teal)]'
+                            }`}
+                          >
+                            {isOutgoing ? 'Outgoing' : 'Incoming'}
+                          </span>
+                        </td>
+                        <td
+                          className={`px-5 py-3 text-right font-medium tabular-nums ${
+                            isOutgoing ? 'text-neutral-800' : 'text-[var(--ifs-teal)]'
+                          }`}
+                        >
+                          {isOutgoing ? '−' : '+'}${tx.amount.toFixed(2)}
+                        </td>
+                        <td className="px-5 py-3 text-center">
+                          <StatusBadge decision={tx.decision} />
+                        </td>
+                        <td className="px-5 py-3 font-mono text-xs text-neutral-600">
+                          {isOutgoing ? tx.to_account : tx.from_account}
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-14 overflow-hidden rounded-full bg-neutral-100">
+                              <div
+                                className={`h-full ${
+                                  tx.risk_score < 20
+                                    ? 'bg-[var(--ifs-teal)]'
+                                    : tx.risk_score < 70
+                                      ? 'bg-[var(--ifs-orange)]'
+                                      : 'bg-red-500'
+                                }`}
+                                style={{ width: `${tx.risk_score}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-neutral-500 tabular-nums w-6">
+                              {tx.risk_score}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!loading && accountId.trim() && !error && history.length === 0 && (
+          <div className="rounded-3xl border border-dashed border-neutral-200 bg-neutral-50/50 py-14 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-neutral-400 mb-3">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-neutral-600">No transactions found</p>
+            <p className="mt-1 text-xs text-neutral-500">No records for account “{accountId}”</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

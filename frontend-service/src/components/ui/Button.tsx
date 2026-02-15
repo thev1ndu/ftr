@@ -3,17 +3,17 @@
 import { ButtonHTMLAttributes, ReactNode } from 'react';
 
 const base =
-  'text-sm font-light tracking-wide rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed';
+  'inline-flex items-center justify-center text-sm font-medium rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
 const variants = {
   primary:
-    'px-8 py-3 bg-[#48286c] text-white uppercase shadow-[0_1px_2px_rgba(72,40,108,0.15)] hover:bg-[#3a1f59] hover:shadow-[0_2px_4px_rgba(72,40,108,0.2)] focus:ring-[#48286c]/30',
+    'px-6 py-2.5 bg-[var(--brand)] text-white shadow-sm hover:bg-[var(--brand-hover)] focus:ring-[var(--brand)]/30',
   secondary:
-    'px-6 py-3 bg-white border border-[#48286c]/15 text-[#48286c]/70 shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:bg-[#48286c]/[0.02] hover:border-[#48286c]/25 focus:ring-[#48286c]/20',
+    'px-5 py-2.5 bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 focus:ring-neutral-200',
   success:
-    'flex-1 py-3 bg-emerald-600 text-white text-xs uppercase hover:bg-emerald-700 focus:ring-emerald-500/30',
+    'flex-1 py-2.5 bg-[var(--ifs-teal)] text-white hover:opacity-90 focus:ring-[var(--ifs-teal)]/40',
   danger:
-    'flex-1 py-3 bg-rose-600 text-white text-xs uppercase hover:bg-rose-700 focus:ring-rose-500/30',
+    'flex-1 py-2.5 bg-red-500 text-white hover:bg-red-600 focus:ring-red-400/40',
 } as const;
 
 export type ButtonVariant = keyof typeof variants;
