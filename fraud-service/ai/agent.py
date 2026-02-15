@@ -2,7 +2,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
-from ai.tools import fraud
+from ai.tools import fraud, get_recent_transaction_count
 from ai.prompts import SYSTEM_PROMPT
 
 # Initialize a global in-memory checkpointer for the application lifecycle
@@ -11,7 +11,7 @@ checkpointer = MemorySaver()
 
 # Initialize LLM and Tools once
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-tools = [fraud]
+tools = [fraud, get_recent_transaction_count]
 
 # Create the graph (agent) once
 # This is the "Correct Format" utilizing prebuilt standard components

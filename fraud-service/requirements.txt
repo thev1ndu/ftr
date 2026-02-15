@@ -3,6 +3,5 @@ uvicorn
 pydantic
 langchain
 langchain-openai
-agentlightning
 python-dotenv
 langchain-community
