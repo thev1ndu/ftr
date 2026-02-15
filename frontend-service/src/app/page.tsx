@@ -39,11 +39,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-10 relative bg-[var(--background)]">
-      <div
-        className="absolute inset-0 bg-[linear-gradient(rgba(109,40,217,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(109,40,217,0.03)_1px,transparent_1px)] bg-[size:32px_32px]"
-        aria-hidden
-      />
-
       <div className="relative z-10 w-full max-w-lg">
         <header className="mb-8 text-center">
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-neutral-900 mb-1.5">

@@ -2,7 +2,7 @@ from typing import TypedDict, Annotated, List, Union
 from langgraph.graph import StateGraph, END
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, BaseMessage
-from app.services.fraud.ai.tools import fraud, get_recent_transaction_count, check_beneficiary_history
+from app.services.fraud.ai.tools import fraud, get_recent_transaction_count, check_beneficiary_history, get_pattern_summary
 from app.services.fraud.ai.prompts import SYSTEM_PROMPT
 from app.core.config import get_settings
 import json
@@ -17,7 +17,7 @@ class AgentState(TypedDict):
     feedback: str
 
 # Tools list
-tools = [fraud, get_recent_transaction_count, check_beneficiary_history]
+tools = [fraud, get_recent_transaction_count, check_beneficiary_history, get_pattern_summary]
 
 # Initialize LLM
 settings = get_settings()

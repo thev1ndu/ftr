@@ -1,7 +1,7 @@
 import logging
 import json
 from app.models.transaction import Transaction
-from app.services.fraud.engine import basic_rule_check
+from app.services.fraud.engine import basic_rule_check, pattern_check
 from app.services.fraud.ai.tools import _check_beneficiary_history_logic
 from app.services.fraud.ai.agent import workflow, get_system_message
 from app.services.fraud.ai.memory import SQLiteMemory
@@ -23,18 +23,37 @@ async def evaluate_transaction(transaction: Transaction):
     try:
         # --- STEP 1: STATIC RULES (Zero Cost) ---
         rule_decision, rule_score = basic_rule_check(transaction)
-        
-        if rule_decision == "BLOCK":
-            logger.info(f"Fast Track BLOCK flagged (Score {rule_score}). Escalating to AI for HITL management.")
 
-        # --- STEP 2: HISTORY CHECK (Low Cost) ---
+        # --- STEP 2: PATTERN ANALYSIS (past transactions, velocity, new beneficiary, amount spike) ---
+        pattern_stats = history_service.get_pattern_stats(
+            transaction.from_account, transaction.to_account
+        )
+        pattern_decision, pattern_score, pattern_reasons = pattern_check(transaction, pattern_stats)
+        combined_score = max(rule_score, pattern_score)
+        combined_decision = rule_decision
+        if pattern_decision == "BLOCK" or (pattern_decision == "REVIEW" and combined_decision == "ALLOW"):
+            combined_decision = pattern_decision
+        if rule_decision == "BLOCK":
+            combined_decision = "BLOCK"
+        if pattern_decision == "BLOCK":
+            combined_decision = "BLOCK"
+
+        if combined_decision == "BLOCK":
+            logger.info(
+                f"BLOCK flagged (Rule score {rule_score}, Pattern score {pattern_score}). "
+                f"Pattern reasons: {pattern_reasons}"
+            )
+
+        # --- STEP 3: HISTORY CHECK (Low Cost) ---
         history_result = _check_beneficiary_history_logic(transaction.from_account, transaction.to_account)
         has_history = "History Found" in history_result
-        
+
         is_low_amount = transaction.amount < 100
         is_micro_amount = transaction.amount < 25
-        
-        if rule_decision == "ALLOW":
+        high_velocity = pattern_stats.get("recent_count_10m", 0) >= 5
+
+        # Fast-track ALLOW only when rules and patterns allow and no high velocity
+        if combined_decision == "ALLOW" and not high_velocity:
             if has_history and is_low_amount:
                 logger.info("Fast Track ALLOW: Trusted History + Low Amount")
                 result = {
@@ -44,7 +63,7 @@ async def evaluate_transaction(transaction: Transaction):
                 }
                 history_service.log_transaction(transaction, result)
                 return result
-            
+
             if is_micro_amount:
                 logger.info("Fast Track ALLOW: Micro Transaction")
                 result = {
@@ -55,20 +74,37 @@ async def evaluate_transaction(transaction: Transaction):
                 history_service.log_transaction(transaction, result)
                 return result
 
-        # --- STEP 3: AI AGENT (High Cost - Escalate) ---
+        # If rules or patterns say BLOCK with high confidence, return immediately (no AI needed)
+        if combined_decision == "BLOCK" and (rule_score >= 80 or pattern_score >= 80):
+            reason_parts = [r for r in pattern_reasons if r]
+            if rule_score >= 80:
+                reason_parts.append("Static rules: high risk (amount/device/self-transfer).")
+            result = {
+                "decision": "BLOCK",
+                "score": min(combined_score, 100),
+                "reason": " ".join(reason_parts) if reason_parts else "Pattern and rule analysis: high risk."
+            }
+            history_service.log_transaction(transaction, result)
+            return result
+
+        # --- STEP 4: AI AGENT (High Cost - Escalate) ---
         logger.info("Escalating to AI Agent...")
         transaction_summary = format_transaction(transaction)
-        
+
         config = {"configurable": {"thread_id": session_id}}
-        
+
         context = ""
         if not has_history:
             context += "[Note: New Beneficiary] "
+        if pattern_stats.get("recent_count_10m", 0) >= 3:
+            context += f"[Note: Velocity: {pattern_stats['recent_count_10m']} tx in last 10 min] "
+        if pattern_reasons:
+            context += f"[Pattern flags: {'; '.join(pattern_reasons)}] "
         if rule_score > 0:
-            context += f"[Note: Rule Score {rule_score}] "
-        if rule_decision == "BLOCK":
-            context += "[URGENT: STATIC RULES FLAGGED AS BLOCK] "
-            
+            context += f"[Rule Score {rule_score}] "
+        if combined_decision == "BLOCK":
+            context += "[URGENT: RULES/PATTERNS FLAGGED AS BLOCK] "
+
         user_message_content = f"Analyze this transaction: {transaction_summary}. Context: {context}"
         
         initial_state = {
