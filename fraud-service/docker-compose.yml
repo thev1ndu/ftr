@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  fraud-api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LOG_LEVEL=${LOG_LEVEL}
+    # Load .env file automatically
+    env_file:
+      - .env
