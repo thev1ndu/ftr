@@ -109,3 +109,24 @@ export const reviewTransaction = async (
         transaction_id: transactionId
     };
 };
+// ... existing code ...
+export interface TransactionHistoryItem {
+    transaction_id: string;
+    from_account: string;
+    to_account: string;
+    amount: number;
+    timestamp: string;
+    decision: string;
+    risk_score: number;
+    reason: string;
+}
+
+export const lookupHistory = async (accountId: string): Promise<TransactionHistoryItem[]> => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_FRAUD_URL}/lookup/${accountId}`);
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch transaction history');
+    }
+
+    return await response.json();
+};

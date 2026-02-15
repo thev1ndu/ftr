@@ -55,6 +55,9 @@ export default function Home() {
           <div className="flex items-center justify-center gap-2 text-sm text-black/40">
             <p>AI-powered fraud detection</p>
           </div>
+          <div className="flex items-center justify-center mt-2 gap-2 text-sm text-black/40">
+            <a href='/history' className='text-blue-500 hover:text-blue-700 underline'>/history</a>
+          </div>
         </div>
 
         {/* Content area with smooth transitions */}

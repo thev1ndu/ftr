@@ -8,6 +8,7 @@ from app.services.fraud.ai.memory import SQLiteMemory
 from app.utils.helpers import format_transaction
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from app.services.fraud.history import history_service
 
 logger = logging.getLogger(__name__)
 
@@ -35,19 +36,23 @@ async def evaluate_transaction(transaction: Transaction):
         if rule_decision == "ALLOW":
             if has_history and is_low_amount:
                 logger.info("Fast Track ALLOW: Trusted History + Low Amount")
-                return {
+                result = {
                     "decision": "ALLOW",
                     "score": 5,
                     "reason": "Trusted beneficiary with significant history. Fast-tracked."
                 }
+                history_service.log_transaction(transaction, result)
+                return result
             
             if is_micro_amount:
                 logger.info("Fast Track ALLOW: Micro Transaction")
-                return {
+                result = {
                     "decision": "ALLOW",
                     "score": 1,
                     "reason": "Micro-transaction within safe limits. Fast-tracked."
                 }
+                history_service.log_transaction(transaction, result)
+                return result
 
         # --- STEP 3: AI AGENT (High Cost - Escalate) ---
         logger.info("Escalating to AI Agent...")
@@ -85,10 +90,14 @@ async def evaluate_transaction(transaction: Transaction):
             
             if next_steps and "human_review" in next_steps:
                  logger.info(f"Transaction {transaction.transaction_id} paused for Human Review.")
+                 
+                 last_message_content = state_snapshot.values["messages"][-1].content
+                 parsed_result = _parse_json_response(last_message_content)
+                 
                  return {
                      "decision": "PENDING_REVIEW",
-                     "score": 85,
-                     "reason": "High Risk transaction flagged for Manual Review."
+                     "score": parsed_result.get("score", 85),
+                     "reason": parsed_result.get("reason", "High Risk transaction flagged for Manual Review.")
                  }
             
             output_text = final_state["messages"][-1].content
@@ -100,7 +109,9 @@ async def evaluate_transaction(transaction: Transaction):
         db.add_message(session_id, "assistant", output_text)
         # -------------------------
 
-        return _parse_json_response(output_text)
+        result = _parse_json_response(output_text)
+        history_service.log_transaction(transaction, result)
+        return result
 
     except Exception as e:
         logger.error(f"Error during AI evaluation: {e}", exc_info=True)
