@@ -1,6 +1,7 @@
 
 export interface FraudCheckResponse {
   is_fraud: boolean;
+  decision: 'ALLOW' | 'REVIEW' | 'BLOCK' | 'PENDING_REVIEW';
   risk_score: number; // Mapping confidence to risk score
   reason: string;
   transaction_id: string;
@@ -9,11 +10,16 @@ export interface FraudCheckResponse {
 interface BackendResponse {
   transaction_id: string;
   ai_decision: {
-    decision: 'ALLOW' | 'REVIEW' | 'BLOCK';
+    decision: 'ALLOW' | 'REVIEW' | 'BLOCK' | 'PENDING_REVIEW';
     confidence: number; // This maps to risk_score
     reason: string;
     score?: number; // Optional handle for new agent output
   };
+}
+
+interface ReviewResponse {
+    status: string;
+    ai_response: string; // JSON string
 }
 
 export const scanTransaction = async (
@@ -50,8 +56,56 @@ export const scanTransaction = async (
 
   return {
     is_fraud: decision.decision !== 'ALLOW',
+    decision: decision.decision,
     risk_score: riskScore,
     reason: decision.reason,
     transaction_id: data.transaction_id
   };
+};
+
+export const reviewTransaction = async (
+    transactionId: string, 
+    action: 'APPROVE' | 'DECLINE', 
+    reason: string
+): Promise<FraudCheckResponse> => {
+    const payload = {
+        action,
+        reason
+    };
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_FRAUD_URL}/review/${transactionId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to review transaction');
+    }
+
+    const data: ReviewResponse = await response.json();
+    
+    // Parse the inner JSON from ai_response
+    let aiDecision;
+    try {
+        aiDecision = JSON.parse(data.ai_response);
+    } catch (e) {
+        console.error("Failed to parse AI response", e);
+        // Fallback
+        aiDecision = {
+            decision: action === 'APPROVE' ? 'ALLOW' : 'BLOCK',
+            score: action === 'APPROVE' ? 0 : 100,
+            reason: reason
+        };
+    }
+
+    return {
+        is_fraud: aiDecision.decision !== 'ALLOW',
+        decision: aiDecision.decision,
+        risk_score: aiDecision.score ?? 0,
+        reason: aiDecision.reason,
+        transaction_id: transactionId
+    };
 };

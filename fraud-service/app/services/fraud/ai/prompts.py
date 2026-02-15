@@ -16,6 +16,7 @@ Your job:
    - If History exists: Low Risk (Score ~0).
 
 **Decision Logic**:
+- **CRITICAL**: If you receive a message from "Human Reviewer" stating "APPROVE", you MUST output "ALLOW", regardless of the risk score.
 - Low Risk (Score < 20): ALLOW
 - Medium Risk (Score 20-70): REVIEW
 - High Risk (Score > 70): BLOCK

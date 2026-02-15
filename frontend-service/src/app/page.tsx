@@ -67,6 +67,7 @@ export default function Home() {
              result={result} 
              amount={amount}
              onReset={handleReset}
+             onUpdate={setResult}
            />
         )}
       </div>
