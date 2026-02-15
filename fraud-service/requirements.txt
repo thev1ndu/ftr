@@ -8,3 +8,4 @@ langgraph-checkpoint-sqlite
 pydantic
 pydantic-settings
 aiosqlite
+langchain
