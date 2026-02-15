@@ -1,10 +1,11 @@
 import sqlite3
 import json
-from datetime import datetime
+from app.core.config import get_settings
 
 class SQLiteMemory:
-    def __init__(self, db_path="fraud_memory.db"):
-        self.db_path = db_path
+    def __init__(self):
+        settings = get_settings()
+        self.db_path = settings.DB_PATH
         self._init_db()
 
     def _init_db(self):

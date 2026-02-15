@@ -2,6 +2,7 @@ from langchain.tools import tool
 import random
 import sqlite3
 from datetime import datetime, timedelta
+from app.core.config import get_settings
 
 @tool
 def get_recent_transaction_count(account_id: str, minutes: int = 10) -> int:
@@ -10,7 +11,8 @@ def get_recent_transaction_count(account_id: str, minutes: int = 10) -> int:
     Useful for detecting high-frequency transaction patterns (velocity checks).
     """
     try:
-        db_path = "fraud_memory.db"
+        settings = get_settings()
+        db_path = settings.DB_PATH
         # Calculate the timestamp threshold
         threshold_time = datetime.now() - timedelta(minutes=minutes)
         
@@ -18,9 +20,6 @@ def get_recent_transaction_count(account_id: str, minutes: int = 10) -> int:
             cursor = conn.cursor()
             # We look for messages in chat_history where role='user' and session_id=account_id
             # and timestamp > threshold.
-            # Note: This assumes 'user' messages in chat_history are transactions.
-            # If the agent is used for other things, we might need filtering.
-            # For this app, main usage is transaction processing.
             
             cursor.execute("""
                 SELECT COUNT(*) FROM chat_history 
@@ -34,17 +33,49 @@ def get_recent_transaction_count(account_id: str, minutes: int = 10) -> int:
             
     except Exception as e:
         return f"Error checking transaction count: {str(e)}"
+
+
+def _check_beneficiary_history_logic(from_account: str, to_account: str) -> str:
+    """Core logic for checking beneficiary history, decoupled from LangChain tool."""
+    try:
+        settings = get_settings()
+        db_path = settings.DB_PATH
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            search_pattern = f"%To: {to_account}%"
+            
+            cursor.execute("""
+                SELECT COUNT(*) FROM chat_history 
+                WHERE session_id = ? 
+                AND role = 'user' 
+                AND content LIKE ?
+            """, (from_account, search_pattern))
+            
+            count = cursor.fetchone()[0]
+            
+            if count > 0:
+                return f"History Found: {count} previous transactions to {to_account}."
+            else:
+                return "No previous transactions found to this beneficiary. Logic: New Beneficiary Risk."
+            
+    except Exception as e:
+        return f"Error checking beneficiary history: {str(e)}"
+
+@tool
+def check_beneficiary_history(from_account: str, to_account: str) -> str:
+    """
+    Check if the user has previously sent money to this beneficiary.
+    Returns the number of past transactions to this beneficiary.
+    Useful for detecting 'New Beneficiary' anomalies.
+    """
+    return _check_beneficiary_history_logic(from_account, to_account)
+
+@tool
 def fraud(transaction_details: str) -> str:
     """
     Perform deep fraud analysis on suspicious transaction.
     Analyze risk factors including geolocation, device fingerprint, and historical patterns.
     """
-    # In a real system, this would query external services:
-    # - Blacklist check
-    # - Geo-location verification
-    # - Device fingerprint analysis
-    # - Historical pattern comparison
-    
     # Mock analysis result
     risk_factors = [
         "Unusual location",

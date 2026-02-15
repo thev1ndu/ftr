@@ -19,5 +19,5 @@ coverage.xml
 .mypy_cache
 .pytest_cache
 .hypotheses
-fraud_memory.db
+transactions.db
 .env
