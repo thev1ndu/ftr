@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -17,7 +16,6 @@ export default function Home() {
     setStatus('PROCESSING');
     
     try {
-      // Intentionally delay to show the "AI processing" animation for at least 3 seconds
       const processPromise = scanTransaction(transferAmount, deviceId, fromAccount, toAccount);
       const delayPromise = new Promise(resolve => setTimeout(resolve, 3500));
       
@@ -27,7 +25,6 @@ export default function Home() {
       setStatus('RESULT');
     } catch (error) {
       console.error("Scan failed", error);
-      // Handle error gracefully - for now back to idle
       alert("System Error: Could not verify transaction security.");
       setStatus('IDLE');
     }
@@ -40,36 +37,62 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-white flex items-center justify-center p-6 md:p-8">
       
-      {/* Background Decor */}
-      <div className="absolute top-0 left-0 w-full h-[50vh] bg-gradient-to-b from-[#48286c] to-[#2d1b4e] z-0 skew-y-[-2deg] origin-top-left scale-110 translate-y-[-20%]"></div>
-      <div className="absolute top-10 right-10 w-64 h-64 bg-[#a54ee0] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-      <div className="absolute top-10 left-10 w-64 h-64 bg-[#00d4ff] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+      {/* Subtle grid background */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]"></div>
+      
+      {/* Minimal accent element */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent"></div>
 
-      <div className="relative z-10 w-full max-w-lg flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-md">
         
-        <div className="mb-8 text-center text-white">
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Financial Transaction Ratings</h1>
-          <p className="text-white/70 text-sm">Protected by AI-powered Fraud Detection</p>
+        {/* Header - minimal and clean */}
+        <div className="mb-16 text-center">
+          <h1 className="text-4xl md:text-4xl font-light tracking-tight text-black mb-3">
+            Financial Transaction Ratings
+          </h1>
+          <div className="flex items-center justify-center gap-2 text-sm text-black/40">
+            <p>AI-powered fraud detection</p>
+          </div>
         </div>
 
-        {status === 'IDLE' && (
-          <TransferForm onScan={handleScan} />
-        )}
+        {/* Content area with smooth transitions */}
+        <div className="transition-all duration-500 ease-out">
+          {status === 'IDLE' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <TransferForm onScan={handleScan} />
+            </div>
+          )}
 
-        {status === 'PROCESSING' && (
-           <FraudProcessor />
-        )}
+          {status === 'PROCESSING' && (
+            <div className="animate-in fade-in duration-500">
+              <FraudProcessor />
+            </div>
+          )}
 
-        {status === 'RESULT' && result && (
-           <TransactionResult 
-             result={result} 
-             amount={amount}
-             onReset={handleReset}
-             onUpdate={setResult}
-           />
-        )}
+          {status === 'RESULT' && result && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <TransactionResult 
+                result={result} 
+                amount={amount}
+                onReset={handleReset}
+                onUpdate={setResult}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Footer mark - subtle branding */}
+        <div className="mt-20 text-center">
+          <div className="inline-flex items-center gap-2 text-xs text-black/20">
+            <span>Secured</span>
+            <div className="w-1 h-1 rounded-full bg-black/10"></div>
+            <span>Verified</span>
+            <div className="w-1 h-1 rounded-full bg-black/10"></div>
+            <span>Protected</span>
+          </div>
+        </div>
       </div>
 
     </div>

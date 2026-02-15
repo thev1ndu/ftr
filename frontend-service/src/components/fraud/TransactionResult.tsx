@@ -21,9 +21,9 @@ export default function TransactionResult({ result, amount, onReset, onUpdate }:
 
   // Define risk level colors
   const getRiskColor = (s: number) => {
-    if (s < 20) return "text-green-500 stroke-green-500";
-    if (s < 70) return "text-yellow-500 stroke-yellow-500";
-    return "text-red-500 stroke-red-500";
+    if (s < 20) return "text-emerald-600";
+    if (s < 70) return "text-amber-600";
+    return "text-black-600";
   };
   
   const handleReview = async (action: 'APPROVE' | 'DECLINE') => {
@@ -47,92 +47,86 @@ export default function TransactionResult({ result, amount, onReset, onUpdate }:
   const riskLabel = score < 20 ? "Low Risk" : score < 70 ? "Medium Risk" : "High Risk";
   
   // Dynamic Styles based on status
-  let statusBg = "bg-green-50 border-green-200";
-  let statusText = "text-green-700";
+  let statusBg = "bg-emerald-500/5 border-emerald-500/20";
+  let statusText = "text-emerald-700";
   let statusTitle = "Payment Processed Successfully";
   let statusDesc = "The transaction has passed all security checks and has been sent to the beneficiary.";
-  let Icon = (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-  );
+  let badgeBg = "bg-emerald-500/10 text-emerald-700 border-emerald-500/20";
+  let badgeText = "Transfer Successful";
 
   if (isPending) {
-      statusBg = "bg-yellow-50 border-yellow-200";
-      statusText = "text-yellow-700";
+      statusBg = "bg-amber-500/5 border-amber-500/20";
+      statusText = "text-amber-700";
       statusTitle = "Manual Review Required";
       statusDesc = "This transaction has been flagged for manual review due to high risk factors. Please approve or decline below.";
-      Icon = (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-      );
+      badgeBg = "bg-amber-500/10 text-amber-700 border-amber-500/20";
+      badgeText = "Pending Review";
   } else if (isFraud) {
-      statusBg = "bg-red-50 border-red-200";
-      statusText = "text-red-700";
+      statusBg = "bg-rose-500/5 border-rose-500/20";
+      statusText = "text-rose-700";
       statusTitle = "Transaction Blocked";
       statusDesc = "Our security systems have flagged this transaction as high risk. No funds have been deducted.";
-      Icon = (
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-      );
+      badgeBg = "bg-rose-500/10 text-rose-700 border-rose-500/20";
+      badgeText = "Security Alert";
   }
 
   return (
-    <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-none shadow-sm">
+    <div className="w-full max-w-2xl bg-white border border-black/10 rounded-none shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
       
       {/* Header Panel */}
-      <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+      <div className="bg-gradient-to-b from-[#48286c]/[0.02] to-transparent px-6 py-5 border-b border-[#48286c]/10 flex justify-between items-center">
         <div>
-           <h2 className="text-lg font-semibold text-gray-800">Transaction Receipt</h2>
-           <p className="text-xs text-gray-500">FINAL STATUS REPORT</p>
+           <h2 className="text-lg font-light text-[#48286c] tracking-tight">Transaction Receipt</h2>
+           <p className="text-[10px] text-[#48286c]/40 tracking-widest uppercase mt-0.5">Final Status Report</p>
         </div>
-        <div className={`px-2 py-1 text-[10px] font-bold uppercase rounded ${isPending ? 'bg-yellow-100 text-yellow-700' : isFraud ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-            {isPending ? 'Pending Review' : isFraud ? 'Security Alert' : 'Transfer Successful'}
+        <div className={`px-3 py-1.5 text-[9px] font-medium uppercase tracking-wider rounded-sm border ${badgeBg}`}>
+            {badgeText}
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-8 space-y-8">
         
-        {/* Status Banner */}
-        <div className={`p-4 rounded border ${statusBg} flex items-start space-x-3`}>
-             <div className={`flex-shrink-0 mt-0.5 ${statusText}`}>
-                {Icon}
-             </div>
+        {/* Status Banner - Minimal */}
+        <div className={`p-5 rounded-sm border ${statusBg}`}>
              <div>
-                 <h3 className={`text-sm font-bold ${statusText === 'text-green-700' ? 'text-green-800' : statusText === 'text-yellow-700' ? 'text-yellow-800' : 'text-red-800'}`}>
+                 <h3 className={`text-base font-light ${statusText} tracking-tight mb-2`}>
                     {statusTitle}
                  </h3>
-                 <p className={`text-xs mt-1 ${statusText} leading-relaxed`}>
+                 <p className={`text-sm font-light ${statusText}/70 text-black leading-relaxed`}>
                     {statusDesc}
                  </p>
              </div>
         </div>
 
         {/* Details Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             
             {/* Amount */}
             <div>
-                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Amount</label>
-                 <div className="text-2xl font-bold text-gray-900">${amount.toFixed(2)}</div>
+                 <label className="block text-[10px] font-light text-[#48286c]/50 uppercase tracking-widest mb-3">Total Amount</label>
+                 <div className="text-3xl font-light text-[#48286c] tracking-tight">${amount.toFixed(2)}</div>
             </div>
 
             {/* Risk Score */}
             <div>
-                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Risk Analysis</label>
-                 <div className="flex items-center space-x-2">
-                    <div className="h-2 w-24 bg-gray-100 rounded-full overflow-hidden">
-                        <div className={`h-full ${
-                             score < 20 ? 'bg-green-500' : score < 70 ? 'bg-yellow-500' : 'bg-red-500'
+                 <label className="block text-[10px] font-light text-[#48286c]/50 uppercase tracking-widest mb-3">Risk Analysis</label>
+                 <div className="flex items-center gap-3">
+                    <div className="h-[2px] flex-1 bg-[#48286c]/5 rounded-full overflow-hidden">
+                        <div className={`h-full transition-all duration-500 ${
+                             score < 20 ? 'bg-emerald-500' : score < 70 ? 'bg-amber-500' : 'bg-rose-500'
                         }`} style={{ width: `${score}%` }}></div>
                     </div>
-                    <span className={`text-sm font-bold ${getRiskColor(score).split(' ')[0]}`}>{score}/100</span>
+                    <span className={`text-sm font-light ${getRiskColor(score)}`}>{score}/100</span>
                  </div>
-                 <p className="text-[10px] text-gray-400 mt-1 uppercase">{riskLabel}</p>
+                 <p className="text-[10px] text-[#48286c]/30 mt-2 uppercase tracking-wide font-light">{riskLabel}</p>
             </div>
         </div>
 
         {/* System Output */}
         <div>
-             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Engine Report</label>
-             <div className="bg-gray-50 rounded border border-gray-200 p-3">
-                 <p className="text-xs text-gray-600 font-mono leading-relaxed">
+             <label className="block text-[10px] font-light text-[#48286c]/50 uppercase tracking-widest mb-3">Engine Report</label>
+             <div className="bg-[#48286c]/[0.02] rounded-sm border border-[#48286c]/10 p-4">
+                 <p className="text-sm text-[#48286c]/70 font-light font-mono leading-relaxed">
                     {result.reason}
                  </p>
              </div>
@@ -140,57 +134,57 @@ export default function TransactionResult({ result, amount, onReset, onUpdate }:
         
         {/* Review Action Section */}
         {isPending && (
-            <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded">
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Review Action</label>
+            <div className="mt-2 p-5 bg-[#48286c]/[0.02] border border-[#48286c]/10 rounded-sm">
+                <label className="block text-[10px] font-light text-[#48286c]/50 uppercase tracking-widest mb-3">Review Action</label>
                 <textarea 
-                    className="w-full text-sm p-2 border border-gray-300 rounded mb-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-gray-800"
-                    placeholder="Enter reason for approval or rejection..."
+                    className="w-full text-sm font-light p-3 border border-[#48286c]/15 rounded-sm mb-4 focus:ring-1 focus:ring-[#48286c]/30 focus:border-[#48286c]/40 outline-none text-[#48286c] bg-white placeholder:text-[#48286c]/20 transition-all"
+                    placeholder="Enter reason for approval or rejection"
                     rows={2}
                     value={reviewReason}
                     onChange={(e) => setReviewReason(e.target.value)}
                 ></textarea>
-                <div className="flex space-x-3">
+                <div className="flex gap-3">
                     <button 
                         onClick={() => handleReview('APPROVE')}
                         disabled={isReviewing}
-                        className="flex-1 bg-green-600 text-white text-xs font-bold py-2 rounded hover:bg-green-700 disabled:opacity-50"
+                        className="flex-1 bg-emerald-600 text-white text-xs font-light py-3 rounded-sm tracking-wide uppercase hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
-                        {isReviewing ? 'Processing...' : 'APPROVE TRANSACTION'}
+                        {isReviewing ? 'Processing...' : 'Approve'}
                     </button>
                     <button 
                         onClick={() => handleReview('DECLINE')}
                         disabled={isReviewing}
-                        className="flex-1 bg-red-600 text-white text-xs font-bold py-2 rounded hover:bg-red-700 disabled:opacity-50"
+                        className="flex-1 bg-rose-600 text-white text-xs font-light py-3 rounded-sm tracking-wide uppercase hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
-                        {isReviewing ? 'Processing...' : 'DECLINE TRANSACTION'}
+                        {isReviewing ? 'Processing...' : 'Decline'}
                     </button>
                 </div>
             </div>
         )}
 
         {/* Footer Info */}
-        <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
-            <div className="text-[10px] text-gray-400 font-mono">
+        <div className="pt-6 border-t border-[#48286c]/5 flex justify-between items-center">
+            <div className="text-[10px] text-[#48286c]/30 font-mono font-light tracking-wide">
                 REF: {result.transaction_id}
             </div>
-            <div className="text-[10px] text-gray-400">
+            <div className="text-[10px] text-[#48286c]/30 font-light">
                 {new Date().toISOString()}
             </div>
         </div>
       </div>
 
       {/* Action Footer */}
-      <div className="bg-gray-50 p-6 border-t border-gray-200 flex justify-end space-x-3">
+      <div className="bg-gradient-to-b from-transparent to-[#48286c]/[0.02] p-6 border-t border-[#48286c]/10 flex justify-end gap-3">
          <button
           onClick={onReset}
-          className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-200 transition-colors"
+          className="px-6 py-3 bg-white border border-[#48286c]/15 text-[#48286c]/70 text-sm font-light tracking-wide rounded-sm shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:bg-[#48286c]/[0.02] hover:border-[#48286c]/25 focus:outline-none focus:ring-2 focus:ring-[#48286c]/20 focus:ring-offset-2 transition-all"
         >
           Close Receipt
         </button>
         {!isPending && (
             <button
             onClick={onReset}
-            className="px-6 py-2.5 bg-[#48286c] text-white text-sm font-medium rounded shadow-sm hover:bg-[#3a1f59] focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#48286c] transition-colors"
+            className="px-6 py-3 bg-[#48286c] text-white text-sm font-light tracking-wide rounded-sm shadow-[0_1px_2px_rgba(72,40,108,0.15)] hover:bg-[#3a1f59] hover:shadow-[0_2px_4px_rgba(72,40,108,0.2)] focus:outline-none focus:ring-2 focus:ring-[#48286c]/30 focus:ring-offset-2 transition-all duration-200"
             >
             New Transaction
             </button>
