@@ -20,8 +20,6 @@
 
 ---
 
-
-
 ## 📑 Table of Contents
 
 <table>
@@ -57,19 +55,17 @@
 
 **FTR** (Fraud Transaction Router) is a middleware service that sits between your payment initiation layer and your core banking/ledger system. Every outbound transaction is routed through FTR for real-time risk scoring before settlement.
 
-```mermaid
-graph LR
-    A[Your App / Payment UI] -->|Transaction Request| B[FTR Middleware]
-    B -->|Approved| C[Core Banking / Settlement]
-    B -->|Static Rules| D[Layer 1: Zero Cost]
-    B -->|Pattern Analysis| E[Layer 2: Low Cost]
-    B -->|Anomaly Detection| F[Layer 3: Low Cost]
-    B -->|AI Agent| G[Layer 4: High Cost]
-    B -->|High Risk| H[Human Review HITL]
-    
-    style B fill:#4CAF50
-    style H fill:#FF9800
-    style C fill:#2196F3
+**System Flow:**
+
+```
+Your App/Payment UI → FTR Middleware → Core Banking/Settlement
+                           ↓
+                    Processing Layers:
+                    - Layer 1: Static Rules
+                    - Layer 2: Pattern Analysis  
+                    - Layer 3: Anomaly Detection
+                    - Layer 4: AI Agent (GPT-4o-mini)
+                    - Human Review (HITL)
 ```
 
 ### Key Design Principles
@@ -169,78 +165,139 @@ graph LR
 
 ### High-Level System Architecture
 
-```mermaid
-graph TB
-    subgraph Frontend["Frontend Service (Next.js 16)"]
-        A[Transfer Form + OTP]
-        B[Fraud Processor]
-        C[Transaction Result + Review]
-    end
-    
-    subgraph Backend["Fraud Service (FastAPI)"]
-        D[API Layer v1]
-        E[Transaction Middleware]
-        F[Fraud Evaluation Engine]
-        G[Persistence SQLite]
-    end
-    
-    A -->|HTTP| D
-    B -->|HTTP| D
-    C -->|HTTP| D
-    D --> E
-    E -->|Passed| F
-    F --> G
-    E -->|Failed| H[Return Error]
-    F -->|Decision| I[Return Result]
-    
-    style Frontend fill:#E3F2FD
-    style Backend fill:#FFF3E0
-    style E fill:#FFEB3B
-    style F fill:#4CAF50
-```
+**Architecture Components:**
+
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Component</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="3"><strong>Frontend Service</strong></td>
+<td>Next.js 16 / React 19</td>
+<td>Modern web application framework</td>
+</tr>
+<tr>
+<td>Transfer Form + OTP</td>
+<td>User interface for transaction input</td>
+</tr>
+<tr>
+<td>Transaction Result</td>
+<td>Display fraud analysis results</td>
+</tr>
+<tr>
+<td rowspan="4"><strong>Backend Service</strong></td>
+<td>FastAPI Layer (v1)</td>
+<td>RESTful API endpoints</td>
+</tr>
+<tr>
+<td>Transaction Middleware</td>
+<td>Account limits & OTP verification</td>
+</tr>
+<tr>
+<td>Fraud Evaluation Engine</td>
+<td>4-layer fraud detection analysis</td>
+</tr>
+<tr>
+<td>SQLite Persistence</td>
+<td>Transaction history & checkpoint storage</td>
+</tr>
+</tbody>
+</table>
+
+**Data Flow:**
+
+1. Frontend sends HTTP request to API Layer
+2. API routes to Transaction Middleware
+3. Middleware validates limits and OTP
+4. If passed, request goes to Fraud Engine
+5. Fraud Engine evaluates using 4 layers
+6. Results stored in SQLite database
+7. Response sent back to Frontend
 
 ### Transaction Processing Pipeline
 
-```mermaid
-flowchart TD
-    Start([Transaction Input]) --> Limits{1. Limits Check}
-    Limits -->|Exceeded| LimitError[❌ 400 LIMIT_EXCEEDED]
-    Limits -->|Within Limits| OTP{2. OTP Check}
-    
-    OTP -->|Amount ≥ $100<br/>No/Invalid OTP| OTPError[❌ 400 OTP_REQUIRED]
-    OTP -->|Valid or<br/>Not Required| Static{3. Static Rules}
-    
-    Static -->|Suspicious Device<br/>Self-Transfer<br/>Extreme Amount| StaticScore[Add Risk Score]
-    StaticScore --> Pattern{4. Pattern Check}
-    
-    Pattern -->|Velocity<br/>New Beneficiary<br/>Amount Spike| PatternScore[Add Risk Score]
-    PatternScore --> Anomaly{5. Anomaly Check}
-    
-    Anomaly -->|Time Anomaly<br/>Round Amount<br/>Structuring| AnomalyScore[Add Risk Score]
-    AnomalyScore --> FastTrack{Fast Track?}
-    
-    FastTrack -->|Trusted +<br/>Low Amount| Allow[✅ ALLOW]
-    FastTrack -->|Score > 75| Block[❌ BLOCK]
-    FastTrack -->|Needs Analysis| AI{6. AI Agent}
-    
-    AI -->|GPT-4o-mini<br/>with Tools| AIDecision{AI Decision}
-    AIDecision -->|ALLOW| Allow
-    AIDecision -->|REVIEW/BLOCK<br/>Score > 75| HITL{7. Human Review}
-    
-    HITL -->|Approve| Allow
-    HITL -->|Decline| Block
-    
-    Allow --> Log[(Log to SQLite)]
-    Block --> Log
-    
-    style Limits fill:#FFC107
-    style OTP fill:#FFC107
-    style FastTrack fill:#4CAF50
-    style AI fill:#2196F3
-    style HITL fill:#FF9800
-    style Allow fill:#4CAF50
-    style Block fill:#F44336
-```
+**Processing Steps:**
+
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Check</th>
+<th>Pass Condition</th>
+<th>Fail Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td>Limits Check</td>
+<td>Within account limits</td>
+<td><code>400 LIMIT_EXCEEDED</code></td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>OTP Verification</td>
+<td>Valid OTP or amount &lt; $100</td>
+<td><code>400 OTP_REQUIRED</code></td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Static Rules (Layer 1)</td>
+<td>No suspicious device/amount</td>
+<td>Add risk score</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>Pattern Analysis (Layer 2)</td>
+<td>Normal velocity/beneficiary</td>
+<td>Add risk score</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>Anomaly Detection (Layer 3)</td>
+<td>No time/amount anomalies</td>
+<td>Add risk score</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td>Fast Track Decision</td>
+<td>Trusted + low amount OR score &gt; 75</td>
+<td><code>ALLOW</code> or <code>BLOCK</code></td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td>AI Agent (Layer 4)</td>
+<td>GPT-4o-mini analysis</td>
+<td>Decision + score + reason</td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td>Human Review (HITL)</td>
+<td>Manual approval for high risk</td>
+<td><code>ALLOW</code> or <code>BLOCK</code></td>
+</tr>
+<tr>
+<td><strong>9</strong></td>
+<td>Final Logging</td>
+<td>All decisions logged to SQLite</td>
+<td>Transaction complete</td>
+</tr>
+</tbody>
+</table>
+
+**Decision Flow:**
+
+- **Steps 1-2:** Middleware validation (hard stops)
+- **Steps 3-5:** Risk score accumulation
+- **Step 6:** Fast-track decisions to skip AI costs
+- **Step 7:** AI analysis for complex cases
+- **Step 8:** Human intervention for highest risk
+- **Step 9:** Persistence and audit trail
 
 ### Fraud Engine Layers
 
@@ -256,25 +313,25 @@ flowchart TD
 <tbody>
 <tr>
 <td><strong>1. Static Rules</strong></td>
-<td><span style="color: green;">Zero</span></td>
+<td>Zero</td>
 <td>Device fingerprinting, amount validation, self-transfer check</td>
 <td>Kali Linux, Metasploit, &gt;$200k transfer</td>
 </tr>
 <tr>
 <td><strong>2. Pattern Analysis</strong></td>
-<td><span style="color: blue;">Low</span></td>
+<td>Low</td>
 <td>Velocity check, new beneficiary scoring, amount spike detection</td>
 <td>10+ tx in 10min, first transfer &gt;$10k</td>
 </tr>
 <tr>
 <td><strong>3. Anomaly Detection</strong></td>
-<td><span style="color: blue;">Low</span></td>
+<td>Low</td>
 <td>Time-of-day analysis, round-amount detection, structuring/smurfing</td>
 <td>Transfer at 3 AM, multiple $5k round amounts</td>
 </tr>
 <tr>
 <td><strong>4. AI Agent</strong></td>
-<td><span style="color: red;">High</span></td>
+<td>High</td>
 <td>LLM with tools for deep behavioral analysis</td>
 <td>Complex scenarios needing judgment</td>
 </tr>
@@ -283,29 +340,44 @@ flowchart TD
 
 ### AI Agent Workflow (LangGraph)
 
-```mermaid
-stateDiagram-v2
-    [*] --> Agent
-    Agent --> ShouldContinue: Process
-    
-    ShouldContinue --> ToolNode: Tool Calls
-    ShouldContinue --> HumanReview: High Risk
-    ShouldContinue --> End: Decision Made
-    
-    ToolNode --> Agent: Results
-    HumanReview --> End: Approve/Decline
-    End --> [*]
-    
-    note right of Agent
-        GPT-4o-mini
-        with 4 tools
-    end note
-    
-    note right of HumanReview
-        LangGraph
-        Interrupt Point
-    end note
-```
+**Agent Execution Flow:**
+
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Action</th>
+<th>Next Step</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Start</strong></td>
+<td>Transaction enters AI agent</td>
+<td>Agent Node</td>
+</tr>
+<tr>
+<td><strong>Agent Node</strong></td>
+<td>GPT-4o-mini processes with 4 tools</td>
+<td>Should Continue decision</td>
+</tr>
+<tr>
+<td><strong>Tool Execution</strong></td>
+<td>Call velocity/beneficiary/pattern/fraud tools</td>
+<td>Return to Agent Node</td>
+</tr>
+<tr>
+<td><strong>Human Review</strong></td>
+<td>High risk triggers LangGraph interrupt</td>
+<td>End with approval/decline</td>
+</tr>
+<tr>
+<td><strong>End</strong></td>
+<td>Final decision returned</td>
+<td>Complete</td>
+</tr>
+</tbody>
+</table>
 
 **Agent Components:**
 
@@ -902,17 +974,6 @@ docker run -p 8000:8000 --env-file .env ftr-fraud-service
 
 ### Decision Matrix
 
-```mermaid
-graph LR
-    A[Score: 0-19] -->|ALLOW| B[Low Risk<br/>Proceed]
-    C[Score: 20-75] -->|REVIEW| D[Medium Risk<br/>Manual Review]
-    E[Score: 76-100] -->|BLOCK| F[High Risk<br/>Reject]
-    
-    style A fill:#4CAF50
-    style C fill:#FF9800
-    style E fill:#F44336
-```
-
 <table>
 <thead>
 <tr>
@@ -1463,6 +1524,5 @@ curl -X POST http://localhost:8000/api/v1/middleware/evaluate \
 <div align="center">
 
 <p>Built with ❤️ using <strong>FastAPI</strong>, <strong>LangChain</strong>, <strong>LangGraph</strong>, <strong>Next.js</strong>, and <strong>OpenAI</strong></p>
-
 
 </div>
