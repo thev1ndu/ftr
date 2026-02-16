@@ -1,68 +1,55 @@
-<![CDATA[<div align="center">
+<div align="center">
 
-# 🛡️ FTR — Fraud Transaction Router
+# FTR — Financial Transaction Ratings
 
 **AI-Powered Fraud Detection Middleware for Financial Transaction Pipelines**
 
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org)
-[![LangChain](https://img.shields.io/badge/LangChain-🦜-green)](https://langchain.com)
-[![LangGraph](https://img.shields.io/badge/LangGraph-HITL-blue)](https://langchain-ai.github.io/langgraph/)
-[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?logo=openai&logoColor=white)](https://openai.com)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<p>
+  <img src="https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white" alt="Next.js">
+  <img src="https://img.shields.io/badge/LangChain-🦜-green" alt="LangChain">
+  <img src="https://img.shields.io/badge/LangGraph-HITL-blue" alt="LangGraph">
+  <img src="https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?logo=openai&logoColor=white" alt="OpenAI">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
+</p>
 
-A production-grade fraud detection middleware that combines **static rule engines**, **behavioral pattern analysis**, **anomaly detection**, and **LLM-powered AI agents** with a **Human-in-the-Loop (HITL)** review workflow — designed to plug into any existing payment or transfer pipeline.
+<p>A production-grade fraud detection middleware that combines <strong>static rule engines</strong>, <strong>behavioral pattern analysis</strong>, <strong>anomaly detection</strong>, and <strong>LLM-powered AI agents</strong> with a <strong>Human-in-the-Loop (HITL)</strong> review workflow — designed to plug into any existing payment or transfer pipeline.</p>
 
 </div>
 
 ---
 
+
+
 ## 📑 Table of Contents
+
+<table>
+<tr>
+<td valign="top" width="50%">
 
 - [Overview](#-overview)
 - [Key Features](#-key-features)
 - [Architecture](#-architecture)
-  - [High-Level Architecture](#high-level-architecture)
-  - [Transaction Processing Pipeline](#transaction-processing-pipeline)
-  - [Fraud Engine Layers](#fraud-engine-layers)
-  - [AI Agent Workflow (LangGraph)](#ai-agent-workflow-langgraph)
-- [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Backend Setup (fraud-service)](#1-backend-setup-fraud-service)
-  - [Frontend Setup (frontend-service)](#2-frontend-setup-frontend-service)
-  - [Docker Deployment](#3-docker-deployment)
 - [Environment Variables](#-environment-variables)
 - [API Reference](#-api-reference)
-  - [Middleware Endpoints](#middleware-endpoints)
-  - [Scan Endpoint](#scan-endpoint)
-  - [Review Endpoint (HITL)](#review-endpoint-hitl)
-  - [Lookup & History](#lookup--history)
-  - [OTP Endpoints](#otp-endpoints)
-  - [Account Limits](#account-limits)
-  - [Configuration](#configuration-endpoints)
-  - [Health Check](#health-check)
 - [Fraud Engine Deep Dive](#-fraud-engine-deep-dive)
-  - [Layer 1 — Static Rules](#layer-1--static-rules-zero-cost)
-  - [Layer 2 — Pattern Analysis](#layer-2--pattern-analysis-low-cost)
-  - [Layer 3 — Anomaly Detection](#layer-3--anomaly-detection-low-cost)
-  - [Layer 4 — AI Agent (LLM)](#layer-4--ai-agent-high-cost)
-  - [Decision Matrix](#decision-matrix)
+
+</td>
+<td valign="top" width="50%">
+
 - [Transaction Middleware](#-transaction-middleware)
-  - [Account Types & Limits](#account-types--limits)
-  - [OTP Verification](#otp-verification)
 - [Configuration Reference](#-configuration-reference)
-  - [Engine Thresholds](#engine-thresholds)
 - [AI Agent Tools](#-ai-agent-tools)
 - [Frontend Application](#-frontend-application)
-- [Data Persistence](#-data-persistence)
 - [Integration Guide](#-integration-guide)
-  - [Option A — Full Pipeline](#option-a--full-pipeline-limits--otp--fraud)
-  - [Option B — Fraud Only](#option-b--fraud-evaluation-only)
 - [Tech Stack](#-tech-stack)
-- [Contributing](#-contributing)
 - [License](#-license)
+
+</td>
+</tr>
+</table>
 
 ---
 
@@ -70,290 +57,272 @@ A production-grade fraud detection middleware that combines **static rule engine
 
 **FTR** (Fraud Transaction Router) is a middleware service that sits between your payment initiation layer and your core banking/ledger system. Every outbound transaction is routed through FTR for real-time risk scoring before settlement.
 
-```
-┌──────────────┐     ┌──────────────────┐     ┌────────────────┐
-│  Your App /  │────▶│   FTR Middleware  │────▶│  Core Banking  │
-│  Payment UI  │     │  (this project)  │     │  / Settlement  │
-└──────────────┘     └──────────────────┘     └────────────────┘
-                          │
-                          ├─ Static Rules
-                          ├─ Pattern Analysis
-                          ├─ Anomaly Detection
-                          ├─ AI Agent (GPT-4o-mini)
-                          └─ Human Review (HITL)
+```mermaid
+graph LR
+    A[Your App / Payment UI] -->|Transaction Request| B[FTR Middleware]
+    B -->|Approved| C[Core Banking / Settlement]
+    B -->|Static Rules| D[Layer 1: Zero Cost]
+    B -->|Pattern Analysis| E[Layer 2: Low Cost]
+    B -->|Anomaly Detection| F[Layer 3: Low Cost]
+    B -->|AI Agent| G[Layer 4: High Cost]
+    B -->|High Risk| H[Human Review HITL]
+    
+    style B fill:#4CAF50
+    style H fill:#FF9800
+    style C fill:#2196F3
 ```
 
-**Key design principles:**
+### Key Design Principles
 
-| Principle | Implementation |
-|---|---|
-| **Cost Efficiency** | 4-layer cascade — cheap checks first, expensive AI only when needed |
-| **Zero Bypass** | Middleware enforces limits _before_ fraud engine — amount manipulation cannot skip checks |
-| **Explainability** | Every decision includes score breakdown, reasons, anomalies, patterns & anti-patterns |
-| **Human Oversight** | High-risk transactions pause for human review via LangGraph interrupt |
-| **Plug & Play** | Two middleware endpoints let you integrate with zero code changes to your existing system |
+<table>
+<thead>
+<tr>
+<th>Principle</th>
+<th>Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cost Efficiency</strong></td>
+<td>4-layer cascade — cheap checks first, expensive AI only when needed</td>
+</tr>
+<tr>
+<td><strong>Zero Bypass</strong></td>
+<td>Middleware enforces limits <em>before</em> fraud engine — amount manipulation cannot skip checks</td>
+</tr>
+<tr>
+<td><strong>Explainability</strong></td>
+<td>Every decision includes score breakdown, reasons, anomalies, patterns & anti-patterns</td>
+</tr>
+<tr>
+<td><strong>Human Oversight</strong></td>
+<td>High-risk transactions pause for human review via LangGraph interrupt</td>
+</tr>
+<tr>
+<td><strong>Plug & Play</strong></td>
+<td>Two middleware endpoints let you integrate with zero code changes to your existing system</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
 ## ✨ Key Features
 
-### Fraud Detection Engine
-- **4-Layer Hybrid Analysis** — Static rules → Pattern analysis → Anomaly detection → AI Agent
-- **Configurable Thresholds** — All detection parameters tunable via `cfg.py`
-- **Fast-Track Decisions** — Trusted beneficiaries and micro-transactions skip AI (cost = $0)
-- **Behavioral Profiling** — Velocity monitoring, beneficiary trust scoring, amount spike detection
-- **Anti-Pattern Detection** — Smurfing / structuring, round-amount fraud, off-hours activity
-
-### Transaction Middleware
-- **Account-Type Limits** — Savings / Checking / Premium with per-transaction and daily caps
-- **OTP Verification** — Required for transactions above configurable threshold ($100 default)
-- **Bypass-Proof** — Limits enforced from actual transaction history, not client-reported totals
-
-### AI Agent (LangGraph + OpenAI)
-- **Tool-Calling Agent** — GPT-4o-mini with 4 bound tools for real-time data retrieval
-- **Human-in-the-Loop** — LangGraph `interrupt_before` pauses execution for manual review
-- **Persistent Memory** — SQLite-backed conversation memory + LangGraph checkpoint state
-- **Structured JSON Output** — Enforced `{ decision, score, reason }` response schema
-
-### Frontend Demo UI
-- **Premium UI** — Next.js 16 + React 19 + Tailwind CSS 4
-- **Full Transaction Flow** — Transfer form → OTP → Processing → AI Result → History
-- **Account History** — Lookup transactions by account ID with summary statistics
+<table>
+<thead>
+<tr>
+<th width="30%">Category</th>
+<th>Features</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>🔍 Fraud Detection Engine</strong></td>
+<td>
+<ul>
+<li><strong>4-Layer Hybrid Analysis</strong> — Static rules → Pattern analysis → Anomaly detection → AI Agent</li>
+<li><strong>Configurable Thresholds</strong> — All detection parameters tunable via <code>cfg.py</code></li>
+<li><strong>Fast-Track Decisions</strong> — Trusted beneficiaries and micro-transactions skip AI (cost = $0)</li>
+<li><strong>Behavioral Profiling</strong> — Velocity monitoring, beneficiary trust scoring, amount spike detection</li>
+<li><strong>Anti-Pattern Detection</strong> — Smurfing / structuring, round-amount fraud, off-hours activity</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td><strong>💳 Transaction Middleware</strong></td>
+<td>
+<ul>
+<li><strong>Account-Type Limits</strong> — Savings / Checking / Premium with per-transaction and daily caps</li>
+<li><strong>OTP Verification</strong> — Required for transactions above configurable threshold ($100 default)</li>
+<li><strong>Bypass-Proof</strong> — Limits enforced from actual transaction history, not client-reported totals</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td><strong>🤖 AI Agent (LangGraph + OpenAI)</strong></td>
+<td>
+<ul>
+<li><strong>Tool-Calling Agent</strong> — GPT-4o-mini with 4 bound tools for real-time data retrieval</li>
+<li><strong>Human-in-the-Loop</strong> — LangGraph <code>interrupt_before</code> pauses execution for manual review</li>
+<li><strong>Persistent Memory</strong> — SQLite-backed conversation memory + LangGraph checkpoint state</li>
+<li><strong>Structured JSON Output</strong> — Enforced <code>{ decision, score, reason }</code> response schema</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td><strong>🎨 Frontend Demo UI</strong></td>
+<td>
+<ul>
+<li><strong>Premium UI</strong> — Next.js 16 + React 19 + Tailwind CSS 4</li>
+<li><strong>Full Transaction Flow</strong> — Transfer form → OTP → Processing → AI Result → History</li>
+<li><strong>Account History</strong> — Lookup transactions by account ID with summary statistics</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
 ## 🏗️ Architecture
 
-### High-Level Architecture
+### High-Level System Architecture
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    frontend-service                     │
-│              Next.js 16 / React 19 / TailwindCSS 4     │
-│  ┌───────────┐  ┌────────────┐  ┌───────────────────┐  │
-│  │TransferForm│  │FraudProcess│  │TransactionResult  │  │
-│  │  + OTP     │  │   or       │  │  + Review Actions │  │
-│  └─────┬─────┘  └─────┬──────┘  └────────┬──────────┘  │
-│        └───────────────┴─────────────────┘              │
-│                        │ HTTP                           │
-└────────────────────────┼────────────────────────────────┘
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│                     fraud-service                       │
-│               FastAPI / Python 3.9+                     │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │                 API Layer (v1)                    │   │
-│  │  /scan  /review  /lookup  /middleware  /otp ...   │   │
-│  └──────────────────────┬───────────────────────────┘   │
-│                         │                               │
-│  ┌──────────────────────▼───────────────────────────┐   │
-│  │            Transaction Middleware                 │   │
-│  │  Account Limits → OTP Verification → Pass/Fail   │   │
-│  └──────────────────────┬───────────────────────────┘   │
-│                         │ (only if passed)               │
-│  ┌──────────────────────▼───────────────────────────┐   │
-│  │              Fraud Evaluation Engine              │   │
-│  │  Static Rules → Patterns → Anomalies → AI Agent  │   │
-│  └──────────────────────┬───────────────────────────┘   │
-│                         │                               │
-│  ┌──────────────────────▼───────────────────────────┐   │
-│  │        Persistence (SQLite)                      │   │
-│  │  transactions.db  │  checkpoints.db              │   │
-│  └──────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph Frontend["Frontend Service (Next.js 16)"]
+        A[Transfer Form + OTP]
+        B[Fraud Processor]
+        C[Transaction Result + Review]
+    end
+    
+    subgraph Backend["Fraud Service (FastAPI)"]
+        D[API Layer v1]
+        E[Transaction Middleware]
+        F[Fraud Evaluation Engine]
+        G[Persistence SQLite]
+    end
+    
+    A -->|HTTP| D
+    B -->|HTTP| D
+    C -->|HTTP| D
+    D --> E
+    E -->|Passed| F
+    F --> G
+    E -->|Failed| H[Return Error]
+    F -->|Decision| I[Return Result]
+    
+    style Frontend fill:#E3F2FD
+    style Backend fill:#FFF3E0
+    style E fill:#FFEB3B
+    style F fill:#4CAF50
 ```
 
 ### Transaction Processing Pipeline
 
-```
-Transaction Input
-       │
-       ▼
-┌──────────────────┐
-│ 1. LIMITS CHECK  │──── Exceeds single-tx or daily limit? ──▶ 400 LIMIT_EXCEEDED
-│    (Middleware)   │
-└──────┬───────────┘
-       │ ✓ Within limits
-       ▼
-┌──────────────────┐
-│ 2. OTP CHECK     │──── Amount ≥ $100 and no/invalid OTP? ──▶ 400 OTP_REQUIRED
-│    (Middleware)   │
-└──────┬───────────┘
-       │ ✓ OTP valid or not required
-       ▼
-┌──────────────────┐
-│ 3. STATIC RULES  │──── Suspicious device / self-transfer / ──▶ High score?
-│    (Zero Cost)   │     extreme amount                          │
-└──────┬───────────┘                                             │
-       │                                                         │
-       ▼                                                         │
-┌──────────────────┐                                             │
-│ 4. PATTERN CHECK │──── Velocity / new beneficiary /        ────┤
-│    (Low Cost)    │     amount spike                            │
-└──────┬───────────┘                                             │
-       │                                                         │
-       ▼                                                         │
-┌──────────────────┐                                             │
-│ 5. ANOMALY CHECK │──── Time anomaly / round amount /       ────┤
-│    (Low Cost)    │     structuring / smurfing                  │
-└──────┬───────────┘                                             │
-       │                                                         │
-       ▼                                                         ▼
-┌──────────────────┐                               ┌──────────────────┐
-│ FAST TRACK?      │──── Trusted + low amount?     │ BLOCK?           │
-│ (Skip AI)        │     Micro transaction?   ──▶  │ (Score > 75)     │──▶ Return BLOCK
-└──────┬───────────┘     Return ALLOW immediately  └──────────────────┘
-       │
-       │ ✗  Not fast-trackable and not auto-blocked
-       ▼
-┌──────────────────┐
-│ 6. AI AGENT      │──── GPT-4o-mini with tools ──▶ { decision, score, reason }
-│    (High Cost)   │     LangGraph workflow
-└──────┬───────────┘
-       │
-       ├── decision = ALLOW ──────────────────────▶ Transaction Approved
-       ├── decision = REVIEW / BLOCK / score > 75 ▶ HITL Interrupt
-       │                                             │
-       │                                             ▼
-       │                                    ┌──────────────────┐
-       │                                    │ 7. HUMAN REVIEW  │
-       │                                    │    (HITL)        │
-       │                                    └──────┬───────────┘
-       │                                           │
-       │                                ┌──────────┴──────────┐
-       │                                │                     │
-       │                             APPROVE              DECLINE
-       │                                │                     │
-       │                           Return ALLOW          Return BLOCK
-       │
-       └──────────────────────────────▶ Log to SQLite
+```mermaid
+flowchart TD
+    Start([Transaction Input]) --> Limits{1. Limits Check}
+    Limits -->|Exceeded| LimitError[❌ 400 LIMIT_EXCEEDED]
+    Limits -->|Within Limits| OTP{2. OTP Check}
+    
+    OTP -->|Amount ≥ $100<br/>No/Invalid OTP| OTPError[❌ 400 OTP_REQUIRED]
+    OTP -->|Valid or<br/>Not Required| Static{3. Static Rules}
+    
+    Static -->|Suspicious Device<br/>Self-Transfer<br/>Extreme Amount| StaticScore[Add Risk Score]
+    StaticScore --> Pattern{4. Pattern Check}
+    
+    Pattern -->|Velocity<br/>New Beneficiary<br/>Amount Spike| PatternScore[Add Risk Score]
+    PatternScore --> Anomaly{5. Anomaly Check}
+    
+    Anomaly -->|Time Anomaly<br/>Round Amount<br/>Structuring| AnomalyScore[Add Risk Score]
+    AnomalyScore --> FastTrack{Fast Track?}
+    
+    FastTrack -->|Trusted +<br/>Low Amount| Allow[✅ ALLOW]
+    FastTrack -->|Score > 75| Block[❌ BLOCK]
+    FastTrack -->|Needs Analysis| AI{6. AI Agent}
+    
+    AI -->|GPT-4o-mini<br/>with Tools| AIDecision{AI Decision}
+    AIDecision -->|ALLOW| Allow
+    AIDecision -->|REVIEW/BLOCK<br/>Score > 75| HITL{7. Human Review}
+    
+    HITL -->|Approve| Allow
+    HITL -->|Decline| Block
+    
+    Allow --> Log[(Log to SQLite)]
+    Block --> Log
+    
+    style Limits fill:#FFC107
+    style OTP fill:#FFC107
+    style FastTrack fill:#4CAF50
+    style AI fill:#2196F3
+    style HITL fill:#FF9800
+    style Allow fill:#4CAF50
+    style Block fill:#F44336
 ```
 
 ### Fraud Engine Layers
 
-| Layer | Cost | What It Does | Example Triggers |
-|---|---|---|---|
-| **Static Rules** | Zero | Device fingerprinting, amount validation, self-transfer check | Kali Linux, Metasploit, >$200k transfer |
-| **Pattern Analysis** | Low | Velocity check, new beneficiary scoring, amount spike detection | 10+ tx in 10min, first transfer >$10k |
-| **Anomaly Detection** | Low | Time-of-day analysis, round-amount detection, structuring/smurfing | Transfer at 3 AM, multiple $5k round amounts |
-| **AI Agent** | High | LLM with tools for deep behavioral analysis | Complex scenarios needing judgment |
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Cost</th>
+<th>What It Does</th>
+<th>Example Triggers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Static Rules</strong></td>
+<td><span style="color: green;">Zero</span></td>
+<td>Device fingerprinting, amount validation, self-transfer check</td>
+<td>Kali Linux, Metasploit, &gt;$200k transfer</td>
+</tr>
+<tr>
+<td><strong>2. Pattern Analysis</strong></td>
+<td><span style="color: blue;">Low</span></td>
+<td>Velocity check, new beneficiary scoring, amount spike detection</td>
+<td>10+ tx in 10min, first transfer &gt;$10k</td>
+</tr>
+<tr>
+<td><strong>3. Anomaly Detection</strong></td>
+<td><span style="color: blue;">Low</span></td>
+<td>Time-of-day analysis, round-amount detection, structuring/smurfing</td>
+<td>Transfer at 3 AM, multiple $5k round amounts</td>
+</tr>
+<tr>
+<td><strong>4. AI Agent</strong></td>
+<td><span style="color: red;">High</span></td>
+<td>LLM with tools for deep behavioral analysis</td>
+<td>Complex scenarios needing judgment</td>
+</tr>
+</tbody>
+</table>
 
 ### AI Agent Workflow (LangGraph)
 
-```
-                ┌─────────┐
-                │  START  │
-                └────┬────┘
-                     ▼
-              ┌──────────────┐
-         ┌───▶│    Agent     │◀──┐
-         │    │  (GPT-4o)    │   │
-         │    └──────┬───────┘   │
-         │           │           │
-         │    ┌──────▼───────┐   │
-         │    │ should_cont? │   │
-         │    └──┬───┬───┬───┘   │
-         │       │   │   │       │
-         │  tools│   │   │human  │
-         │       │   │   │review │
-         │       ▼   │   ▼       │
-         │  ┌────────┐│┌────────────┐
-         └──│ Tool   │││  Human    ├──┘
-            │ Node   │││  Review   │
-            └────────┘│└────────────┘
-                      │ END
-                      ▼
-               ┌──────────┐
-               │   END    │
-               └──────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> Agent
+    Agent --> ShouldContinue: Process
+    
+    ShouldContinue --> ToolNode: Tool Calls
+    ShouldContinue --> HumanReview: High Risk
+    ShouldContinue --> End: Decision Made
+    
+    ToolNode --> Agent: Results
+    HumanReview --> End: Approve/Decline
+    End --> [*]
+    
+    note right of Agent
+        GPT-4o-mini
+        with 4 tools
+    end note
+    
+    note right of HumanReview
+        LangGraph
+        Interrupt Point
+    end note
 ```
 
-**Nodes:**
-- `agent` — Invokes GPT-4o-mini with bound tools and system prompt
-- `tools` — Executes tool calls (velocity check, beneficiary history, pattern summary, deep fraud analysis)
-- `human_review` — Interrupt point where execution pauses for manual approval/decline
+**Agent Components:**
 
----
-
-## 📂 Project Structure
-
-```
-ftr/
-├── README.md                          # ← You are here
-├── fraud-service/                     # Python FastAPI backend
-│   ├── app/
-│   │   ├── main.py                    # FastAPI app, CORS, startup
-│   │   ├── api/
-│   │   │   └── v1/
-│   │   │       ├── __init__.py        # Router aggregation
-│   │   │       └── endpoints/
-│   │   │           ├── scan.py        # POST /scan — main transaction scan
-│   │   │           ├── review.py      # POST /review/{id} — HITL review
-│   │   │           ├── lookup.py      # GET /lookup/{id} — history & indicators
-│   │   │           ├── middleware.py  # POST /middleware/check & /evaluate
-│   │   │           ├── otp.py         # POST /otp/request
-│   │   │           ├── limits.py      # GET/PUT /limits/{id}
-│   │   │           ├── config.py      # GET /config
-│   │   │           └── health.py      # GET /health
-│   │   ├── models/
-│   │   │   ├── transaction.py         # Transaction & TransactionScanRequest
-│   │   │   └── review.py             # ReviewRequest
-│   │   ├── services/
-│   │   │   ├── fraud/
-│   │   │   │   ├── service.py         # Hybrid evaluation orchestrator
-│   │   │   │   ├── engine.py          # Static rules, patterns, anomalies
-│   │   │   │   ├── history.py         # Transaction history service (SQLite)
-│   │   │   │   ├── indicators_agent.py # LangChain indicators agent
-│   │   │   │   ├── cfg.py            # Tunable thresholds (single source of truth)
-│   │   │   │   ├── store.py          # Config store accessor
-│   │   │   │   └── ai/
-│   │   │   │       ├── agent.py       # LangGraph workflow (StateGraph + HITL)
-│   │   │   │       ├── tools.py       # 4 LangChain tools for the agent
-│   │   │   │       ├── prompts.py     # System prompt for GPT-4o-mini
-│   │   │   │       └── memory.py      # SQLite conversation memory
-│   │   │   └── transaction_middleware/
-│   │   │       ├── middleware.py       # Limits + OTP enforcement
-│   │   │       ├── account_limits.py  # Account type definitions & limits
-│   │   │       └── otp_store.py       # In-memory OTP store with TTL
-│   │   ├── core/
-│   │   │   ├── config.py             # Pydantic Settings (env vars)
-│   │   │   └── logging.py            # Logging setup
-│   │   └── utils/
-│   │       └── helpers.py            # Transaction formatting helpers
-│   ├── Dockerfile                     # Python 3.11-slim container
-│   ├── docker-compose.yml            # Single-service compose
-│   ├── requirements.txt              # Python dependencies
-│   ├── .env                          # Environment variables
-│   ├── transactions.db               # SQLite — transaction history
-│   └── checkpoints.db                # SQLite — LangGraph HITL state
-│
-└── frontend-service/                  # Next.js frontend
-    ├── src/
-    │   ├── app/
-    │   │   ├── page.tsx               # Home / transfer page
-    │   │   ├── layout.tsx             # Root layout
-    │   │   ├── globals.css            # Global styles
-    │   │   ├── history/
-    │   │   │   └── page.tsx           # Transaction history page
-    │   │   └── lookup/
-    │   │       └── page.tsx           # Account lookup page
-    │   ├── components/
-    │   │   ├── fraud/
-    │   │   │   ├── TransferForm.tsx    # Transaction input form
-    │   │   │   ├── FraudProcessor.tsx  # Processing animation
-    │   │   │   ├── TransactionResult.tsx # Result display + review actions
-    │   │   │   ├── OtpPopup.tsx       # OTP dialog
-    │   │   │   └── OtpStep.tsx        # OTP step component
-    │   │   └── ui/                    # Shared UI components
-    │   └── services/
-    │       ├── fraudService.ts        # API client for fraud-service
-    │       └── configService.ts       # Configuration service
-    ├── package.json
-    ├── tsconfig.json
-    ├── next.config.ts
-    ├── postcss.config.mjs
-    └── .env                           # NEXT_PUBLIC_FRAUD_URL
-```
+<table>
+<tr>
+<td><strong>agent</strong></td>
+<td>Invokes GPT-4o-mini with bound tools and system prompt</td>
+</tr>
+<tr>
+<td><strong>tools</strong></td>
+<td>Executes tool calls (velocity check, beneficiary history, pattern summary, deep fraud analysis)</td>
+</tr>
+<tr>
+<td><strong>human_review</strong></td>
+<td>Interrupt point where execution pauses for manual approval/decline</td>
+</tr>
+</table>
 
 ---
 
@@ -361,12 +330,37 @@ ftr/
 
 ### Prerequisites
 
-| Tool | Version | Purpose |
-|---|---|---|
-| **Python** | 3.9+ | Backend runtime |
-| **Node.js** | 18+ | Frontend runtime |
-| **pnpm** (or npm) | Latest | Frontend package manager |
-| **OpenAI API Key** | — | Required for AI agent features |
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Version</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Python</strong></td>
+<td>3.9+</td>
+<td>Backend runtime</td>
+</tr>
+<tr>
+<td><strong>Node.js</strong></td>
+<td>18+</td>
+<td>Frontend runtime</td>
+</tr>
+<tr>
+<td><strong>pnpm</strong> (or npm)</td>
+<td>Latest</td>
+<td>Frontend package manager</td>
+</tr>
+<tr>
+<td><strong>OpenAI API Key</strong></td>
+<td>—</td>
+<td>Required for AI agent features</td>
+</tr>
+</tbody>
+</table>
 
 ### 1. Backend Setup (`fraud-service`)
 
@@ -394,8 +388,10 @@ EOF
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-The API will be available at **http://localhost:8000**.
-Interactive API docs (Swagger) at **http://localhost:8000/docs**.
+<blockquote>
+<p>✅ The API will be available at <strong>http://localhost:8000</strong></p>
+<p>📚 Interactive API docs (Swagger) at <strong>http://localhost:8000/docs</strong></p>
+</blockquote>
 
 ### 2. Frontend Setup (`frontend-service`)
 
@@ -415,7 +411,9 @@ pnpm dev
 # or: npm run dev
 ```
 
-Open **http://localhost:3000** in your browser.
+<blockquote>
+<p>✅ Open <strong>http://localhost:3000</strong> in your browser</p>
+</blockquote>
 
 ### 3. Docker Deployment
 
@@ -436,36 +434,91 @@ docker run -p 8000:8000 --env-file .env ftr-fraud-service
 
 ### fraud-service (`.env`)
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `OPENAI_API_KEY` | ✅ | — | OpenAI API key for GPT-4o-mini |
-| `LOG_LEVEL` | ❌ | `INFO` | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
-| `DB_PATH` | ❌ | `transactions.db` | Path to SQLite transaction history database |
-| `CHECKPOINTS_DB_PATH` | ❌ | `checkpoints.db` | Path to LangGraph HITL checkpoint database |
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OPENAI_API_KEY</code></td>
+<td>✅</td>
+<td>—</td>
+<td>OpenAI API key for GPT-4o-mini</td>
+</tr>
+<tr>
+<td><code>LOG_LEVEL</code></td>
+<td>❌</td>
+<td><code>INFO</code></td>
+<td>Logging level (<code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>)</td>
+</tr>
+<tr>
+<td><code>DB_PATH</code></td>
+<td>❌</td>
+<td><code>transactions.db</code></td>
+<td>Path to SQLite transaction history database</td>
+</tr>
+<tr>
+<td><code>CHECKPOINTS_DB_PATH</code></td>
+<td>❌</td>
+<td><code>checkpoints.db</code></td>
+<td>Path to LangGraph HITL checkpoint database</td>
+</tr>
+</tbody>
+</table>
 
 ### frontend-service (`.env`)
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `NEXT_PUBLIC_FRAUD_URL` | ✅ | — | Base URL of the fraud-service API (e.g., `http://localhost:8000/api/v1`) |
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NEXT_PUBLIC_FRAUD_URL</code></td>
+<td>✅</td>
+<td>—</td>
+<td>Base URL of the fraud-service API (e.g., <code>http://localhost:8000/api/v1</code>)</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
 ## 📖 API Reference
 
-All endpoints are prefixed with `/api/v1`. The service also mounts the same router at the root `/` for backward compatibility.
+<blockquote>
+<p>All endpoints are prefixed with <code>/api/v1</code>. The service also mounts the same router at the root <code>/</code> for backward compatibility.</p>
+</blockquote>
 
 ### Middleware Endpoints
 
-> These are the **recommended integration points** for existing payment systems.
+<p><strong>🎯 These are the recommended integration points for existing payment systems.</strong></p>
 
 #### `POST /api/v1/middleware/check` — Full Pipeline
 
-**Use when:** FTR owns limits, OTP, and fraud decisions.
-
-Runs: **Limits** → **OTP** → **Fraud Engine** (all layers).
+<table>
+<tr>
+<td><strong>Use when:</strong></td>
+<td>FTR owns limits, OTP, and fraud decisions</td>
+</tr>
+<tr>
+<td><strong>Runs:</strong></td>
+<td><strong>Limits</strong> → <strong>OTP</strong> → <strong>Fraud Engine</strong> (all layers)</td>
+</tr>
+</table>
 
 **Request Body:**
+
 ```json
 {
   "transaction_id": "tx_abc123",
@@ -479,9 +532,12 @@ Runs: **Limits** → **OTP** → **Fraud Engine** (all layers).
 }
 ```
 
-> **Note:** `timestamp`, `ip_address`, `device_id` are optional (defaults provided). `otp` is required only when `amount ≥ $100`.
+<blockquote>
+<p><strong>Note:</strong> <code>timestamp</code>, <code>ip_address</code>, <code>device_id</code> are optional (defaults provided). <code>otp</code> is required only when <code>amount ≥ $100</code>.</p>
+</blockquote>
 
 **Success Response (200):**
+
 ```json
 {
   "transaction_id": "tx_abc123",
@@ -496,6 +552,7 @@ Runs: **Limits** → **OTP** → **Fraud Engine** (all layers).
 ```
 
 **Limit Error Response (400):**
+
 ```json
 {
   "detail": {
@@ -510,213 +567,122 @@ Runs: **Limits** → **OTP** → **Fraud Engine** (all layers).
 
 **Decision Values:**
 
-| Decision | Meaning | Action |
-|---|---|---|
-| `ALLOW` | Transaction is safe | Proceed to settlement |
-| `REVIEW` | Moderate risk | Hold for manual review or proceed with caution |
-| `BLOCK` | High risk | Reject the transaction |
-| `PENDING_REVIEW` | AI flagged for HITL | Awaiting human approval via `/review` endpoint |
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Meaning</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ALLOW</code></td>
+<td>Transaction is safe</td>
+<td>Proceed to settlement</td>
+</tr>
+<tr>
+<td><code>REVIEW</code></td>
+<td>Moderate risk</td>
+<td>Hold for manual review or proceed with caution</td>
+</tr>
+<tr>
+<td><code>BLOCK</code></td>
+<td>High risk</td>
+<td>Reject the transaction</td>
+</tr>
+<tr>
+<td><code>PENDING_REVIEW</code></td>
+<td>AI flagged for HITL</td>
+<td>Awaiting human approval via <code>/review</code> endpoint</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
 #### `POST /api/v1/middleware/evaluate` — Fraud Only
 
-**Use when:** Your system already handles limits and auth. You only need a fraud decision.
+<table>
+<tr>
+<td><strong>Use when:</strong></td>
+<td>Your system already handles limits and auth. You only need a fraud decision.</td>
+</tr>
+<tr>
+<td><strong>Runs:</strong></td>
+<td><strong>Fraud Engine</strong> only (all 4 layers, no limits/OTP)</td>
+</tr>
+</table>
 
-Runs: **Fraud Engine** only (all 4 layers, no limits/OTP).
+**Request Body:** Same as `/middleware/check`
 
-**Request Body:** Same as `/middleware/check`.
-
-**Response:** Same schema as `/middleware/check` (without `account_type`).
-
----
-
-### Scan Endpoint
-
-#### `POST /api/v1/scan`
-
-Primary entry point used by the frontend. Runs the full middleware + fraud pipeline.
-
-**Request Body:**
-```json
-{
-  "transaction_id": "tx_001",
-  "from_account": "ACC_A",
-  "to_account": "ACC_B",
-  "amount": 150.00,
-  "timestamp": "2025-02-16T12:00:00Z",
-  "ip_address": "10.0.0.1",
-  "device_id": "mobile-01",
-  "otp": null
-}
-```
-
-**Response:**
-```json
-{
-  "transaction_id": "tx_001",
-  "ai_decision": {
-    "decision": "ALLOW",
-    "score": 5,
-    "reason": "Trusted beneficiary with significant history. Fast-tracked.",
-    "patterns": ["Recurring beneficiary: 8 past transactions to this payee (trusted pattern)"]
-  },
-  "account_type": "SAVINGS"
-}
-```
+**Response:** Same schema as `/middleware/check` (without `account_type`)
 
 ---
 
-### Review Endpoint (HITL)
+### Additional Endpoints
 
-#### `POST /api/v1/review/{transaction_id}`
-
-Approve or decline a transaction that is in `PENDING_REVIEW` status. Resumes the LangGraph workflow from the `human_review` interrupt point.
-
-**Request Body:**
-```json
-{
-  "action": "APPROVE",
-  "reason": "Verified with customer via phone call."
-}
-```
-
-| Field | Type | Values |
-|---|---|---|
-| `action` | string | `APPROVE` or `DECLINE` |
-| `reason` | string | Human-readable justification |
-
-**Response:**
-```json
-{
-  "status": "PROCESSED",
-  "ai_response": "```json\n{\"decision\": \"ALLOW\", \"score\": 10, \"reason\": \"Approved by human reviewer.\"}\n```"
-}
-```
-
-**Error Cases:**
-
-| Status | Response |
-|---|---|
-| 404 | `"Transaction not found or session expired"` |
-| 200 | `{ "status": "ALREADY_PROCESSED" }` if already reviewed |
-
----
-
-### Lookup & History
-
-#### `GET /api/v1/lookup/{account_id}`
-
-Returns all transactions (sent and received) for a given account.
-
-**Response:**
-```json
-[
-  {
-    "transaction_id": "tx_001",
-    "from_account": "ACC_A",
-    "to_account": "ACC_B",
-    "amount": 150.00,
-    "timestamp": "2025-02-16T12:00:00",
-    "decision": "ALLOW",
-    "risk_score": 5.0,
-    "reason": "Trusted beneficiary. Fast-tracked."
-  }
-]
-```
-
-#### `GET /api/v1/lookup/{account_id}/indicators`
-
-Runs the **LangChain indicators agent** for advanced account-level risk analysis. Returns current risk indicators, thresholds, safe patterns, and anti-patterns.
-
----
-
-### OTP Endpoints
-
-#### `POST /api/v1/otp/request`
-
-Generate a one-time password for transaction verification.
-
-**Request Body:**
-```json
-{
-  "transaction_id": "tx_001",
-  "from_account": "ACC_A",
-  "amount": 5000.00
-}
-```
-
-**Response:**
-```json
-{
-  "transaction_id": "tx_001",
-  "message": "OTP generated. For demo it is returned here; in production it would be sent to your registered device.",
-  "otp_demo": "482917",
-  "expires_in_seconds": 300,
-  "otp_required_threshold": 100.0
-}
-```
-
-> **Production Note:** In a real deployment, the `otp_demo` field would not be returned — the OTP would be delivered via SMS/email.
-
----
-
-### Account Limits
-
-#### `GET /api/v1/limits/{account_id}`
-
-Get the account type, limits, and daily usage for an account.
-
-**Response:**
-```json
-{
-  "account_id": "ACC_A",
-  "account_type": "SAVINGS",
-  "single_tx_limit": 5000.0,
-  "daily_limit": 10000.0,
-  "daily_used": 2500.0,
-  "daily_remaining": 7500.0,
-  "otp_required_above": 100.0,
-  "account_types_info": {
-    "SAVINGS": { "single_tx_limit": 5000.0, "daily_limit": 10000.0 },
-    "CHECKING": { "single_tx_limit": 25000.0, "daily_limit": 50000.0 },
-    "PREMIUM": { "single_tx_limit": 100000.0, "daily_limit": 250000.0 }
-  }
-}
-```
-
-#### `PUT /api/v1/limits/{account_id}/type`
-
-Set the account type for an account.
-
-**Request Body:**
-```json
-{
-  "account_type": "PREMIUM"
-}
-```
-
----
-
-### Configuration Endpoints
-
-#### `GET /api/v1/config`
-
-Returns all fraud engine configuration thresholds.
-
-#### `GET /api/v1/config/{key}`
-
-Returns a single configuration value by key name.
-
----
-
-### Health Check
-
-#### `GET /api/v1/health` or `GET /health`
-
-```json
-{ "status": "ok", "service": "fraud-middleware" }
-```
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/v1/scan</code></td>
+<td>POST</td>
+<td>Primary entry point used by the frontend. Runs full middleware + fraud pipeline</td>
+</tr>
+<tr>
+<td><code>/api/v1/review/{transaction_id}</code></td>
+<td>POST</td>
+<td>Approve or decline a transaction in <code>PENDING_REVIEW</code> status (HITL)</td>
+</tr>
+<tr>
+<td><code>/api/v1/lookup/{account_id}</code></td>
+<td>GET</td>
+<td>Returns all transactions (sent and received) for a given account</td>
+</tr>
+<tr>
+<td><code>/api/v1/lookup/{account_id}/indicators</code></td>
+<td>GET</td>
+<td>Runs LangChain indicators agent for advanced account-level risk analysis</td>
+</tr>
+<tr>
+<td><code>/api/v1/otp/request</code></td>
+<td>POST</td>
+<td>Generate a one-time password for transaction verification</td>
+</tr>
+<tr>
+<td><code>/api/v1/limits/{account_id}</code></td>
+<td>GET</td>
+<td>Get account type, limits, and daily usage for an account</td>
+</tr>
+<tr>
+<td><code>/api/v1/limits/{account_id}/type</code></td>
+<td>PUT</td>
+<td>Set the account type for an account</td>
+</tr>
+<tr>
+<td><code>/api/v1/config</code></td>
+<td>GET</td>
+<td>Returns all fraud engine configuration thresholds</td>
+</tr>
+<tr>
+<td><code>/api/v1/config/{key}</code></td>
+<td>GET</td>
+<td>Returns a single configuration value by key name</td>
+</tr>
+<tr>
+<td><code>/api/v1/health</code></td>
+<td>GET</td>
+<td>Health check endpoint</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
@@ -724,87 +690,284 @@ Returns a single configuration value by key name.
 
 ### Layer 1 — Static Rules (Zero Cost)
 
-Instant checks with no external calls. These run first and can immediately BLOCK or add risk score.
+<p>Instant checks with no external calls. These run first and can immediately BLOCK or add risk score.</p>
 
-| Check | Score Impact | Trigger |
-|---|---|---|
-| **Negative Amount** | BLOCK (100) | `amount ≤ 0` |
-| **High Amount** | +40 | `amount > $50,000` |
-| **Very High Amount** | +50 (cumulative 90) | `amount > $200,000` |
-| **Self-Transfer** | +30 | `from_account == to_account` |
-| **Security Tool Detected** | +90 | Kali, Metasploit, Frida, Xposed, Cydia, etc. |
-| **Emulator Detected** | +30 | Nox, BlueStacks, Emulator |
-| **Rooted/Jailbroken** | +90 | Root, Jailbreak, Magisk |
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Score Impact</th>
+<th>Trigger</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Negative Amount</strong></td>
+<td>BLOCK (100)</td>
+<td><code>amount ≤ 0</code></td>
+</tr>
+<tr>
+<td><strong>High Amount</strong></td>
+<td>+40</td>
+<td><code>amount &gt; $50,000</code></td>
+</tr>
+<tr>
+<td><strong>Very High Amount</strong></td>
+<td>+50 (cumulative 90)</td>
+<td><code>amount &gt; $200,000</code></td>
+</tr>
+<tr>
+<td><strong>Self-Transfer</strong></td>
+<td>+30</td>
+<td><code>from_account == to_account</code></td>
+</tr>
+<tr>
+<td><strong>Security Tool Detected</strong></td>
+<td>+90</td>
+<td>Kali, Metasploit, Frida, Xposed, Cydia, etc.</td>
+</tr>
+<tr>
+<td><strong>Emulator Detected</strong></td>
+<td>+30</td>
+<td>Nox, BlueStacks, Emulator</td>
+</tr>
+<tr>
+<td><strong>Rooted/Jailbroken</strong></td>
+<td>+90</td>
+<td>Root, Jailbreak, Magisk</td>
+</tr>
+</tbody>
+</table>
 
-**Suspicious Device Keywords:** `kali`, `parrot os`, `blackarch`, `metasploit`, `root`, `jailbreak`, `magisk`, `cydia`, `frida`, `xposed`, `emulator`, `nox`, `bluestacks`
+<blockquote>
+<p><strong>Suspicious Device Keywords:</strong> <code>kali</code>, <code>parrot os</code>, <code>blackarch</code>, <code>metasploit</code>, <code>root</code>, <code>jailbreak</code>, <code>magisk</code>, <code>cydia</code>, <code>frida</code>, <code>xposed</code>, <code>emulator</code>, <code>nox</code>, <code>bluestacks</code></p>
+</blockquote>
 
 ### Layer 2 — Pattern Analysis (Low Cost)
 
-Checks against historical transaction data in SQLite.
+<p>Checks against historical transaction data in SQLite.</p>
 
-| Check | Score Impact | Trigger | Decision |
-|---|---|---|---|
-| **High Velocity** | +85 | ≥10 tx in 10 min | BLOCK |
-| **Elevated Velocity** | +40 | ≥5 tx in 10 min | REVIEW |
-| **Unusual Frequency** | +20 | ≥3 tx in 10 min | — |
-| **New Beneficiary + High Amount** | +50 | First tx to payee, >$10k | REVIEW |
-| **New Beneficiary + Medium Amount** | +35 | First tx to payee, >$5k | REVIEW |
-| **New Beneficiary + Low Amount** | +25 | First tx to payee, >$1k | — |
-| **Amount Spike (vs avg)** | +30 | Amount > 3× recent 24h average | REVIEW |
-| **Amount Above Max** | +25 | Amount > 2× recent 24h max | — |
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Score Impact</th>
+<th>Trigger</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>High Velocity</strong></td>
+<td>+85</td>
+<td>≥10 tx in 10 min</td>
+<td>BLOCK</td>
+</tr>
+<tr>
+<td><strong>Elevated Velocity</strong></td>
+<td>+40</td>
+<td>≥5 tx in 10 min</td>
+<td>REVIEW</td>
+</tr>
+<tr>
+<td><strong>Unusual Frequency</strong></td>
+<td>+20</td>
+<td>≥3 tx in 10 min</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>New Beneficiary + High Amount</strong></td>
+<td>+50</td>
+<td>First tx to payee, &gt;$10k</td>
+<td>REVIEW</td>
+</tr>
+<tr>
+<td><strong>New Beneficiary + Medium Amount</strong></td>
+<td>+35</td>
+<td>First tx to payee, &gt;$5k</td>
+<td>REVIEW</td>
+</tr>
+<tr>
+<td><strong>New Beneficiary + Low Amount</strong></td>
+<td>+25</td>
+<td>First tx to payee, &gt;$1k</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Amount Spike (vs avg)</strong></td>
+<td>+30</td>
+<td>Amount &gt; 3× recent 24h average</td>
+<td>REVIEW</td>
+</tr>
+<tr>
+<td><strong>Amount Above Max</strong></td>
+<td>+25</td>
+<td>Amount &gt; 2× recent 24h max</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
 
 ### Layer 3 — Anomaly Detection (Low Cost)
 
-Advanced pattern matching for sophisticated fraud patterns.
+<p>Advanced pattern matching for sophisticated fraud patterns.</p>
 
-| Check | Score Impact | Description |
-|---|---|---|
-| **Amount Anomaly** | +25 | Amount far from 24h average (>5× or <0.2×) |
-| **Time Anomaly** | +25 | Transaction at unusual hour (>6h offset from typical peak) |
-| **Round Amount** | +20 | Exact round dollar amounts ≥$500 (common in fraud) |
-| **Structuring** | +40 | Multiple tx to different beneficiaries in 10 min window |
-| **Multiple New Beneficiaries** | +15 | ≥2 new beneficiaries in short window |
-| **Smurfing Pattern** | +15 | Multiple round-amount transactions in short window |
-| **Large to New After Burst** | +20 | Large transfer to new beneficiary after recent activity burst |
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Score Impact</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Amount Anomaly</strong></td>
+<td>+25</td>
+<td>Amount far from 24h average (&gt;5× or &lt;0.2×)</td>
+</tr>
+<tr>
+<td><strong>Time Anomaly</strong></td>
+<td>+25</td>
+<td>Transaction at unusual hour (&gt;6h offset from typical peak)</td>
+</tr>
+<tr>
+<td><strong>Round Amount</strong></td>
+<td>+20</td>
+<td>Exact round dollar amounts ≥$500 (common in fraud)</td>
+</tr>
+<tr>
+<td><strong>Structuring</strong></td>
+<td>+40</td>
+<td>Multiple tx to different beneficiaries in 10 min window</td>
+</tr>
+<tr>
+<td><strong>Multiple New Beneficiaries</strong></td>
+<td>+15</td>
+<td>≥2 new beneficiaries in short window</td>
+</tr>
+<tr>
+<td><strong>Smurfing Pattern</strong></td>
+<td>+15</td>
+<td>Multiple round-amount transactions in short window</td>
+</tr>
+<tr>
+<td><strong>Large to New After Burst</strong></td>
+<td>+20</td>
+<td>Large transfer to new beneficiary after recent activity burst</td>
+</tr>
+</tbody>
+</table>
 
-**Positive Patterns (reduce risk):**
-- Recurring beneficiary (≥3 past transactions) — trusted pattern
-- Amount consistent with recent 24h behavior (within 0.5×–2.0× of average)
+<blockquote>
+<p><strong>✅ Positive Patterns</strong> (reduce risk):</p>
+<ul>
+<li>Recurring beneficiary (≥3 past transactions) — trusted pattern</li>
+<li>Amount consistent with recent 24h behavior (within 0.5×–2.0× of average)</li>
+</ul>
+</blockquote>
 
 ### Layer 4 — AI Agent (High Cost)
 
-Only invoked when Layers 1–3 don't provide a definitive fast-track ALLOW or high-confidence BLOCK.
+<p>Only invoked when Layers 1–3 don't provide a definitive fast-track ALLOW or high-confidence BLOCK.</p>
 
-The agent uses **GPT-4o-mini** with 4 bound tools:
+<p>The agent uses <strong>GPT-4o-mini</strong> with 4 bound tools:</p>
 
-| Tool | Purpose |
-|---|---|
-| `get_recent_transaction_count` | Velocity check — tx count in last N minutes |
-| `check_beneficiary_history` | Beneficiary trust — past tx count to this payee |
-| `get_pattern_summary` | Combined summary: velocity + beneficiary + 24h stats |
-| `fraud` | Deep fraud heuristic analysis (geolocation, device fingerprint) |
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get_recent_transaction_count</code></td>
+<td>Velocity check — tx count in last N minutes</td>
+</tr>
+<tr>
+<td><code>check_beneficiary_history</code></td>
+<td>Beneficiary trust — past tx count to this payee</td>
+</tr>
+<tr>
+<td><code>get_pattern_summary</code></td>
+<td>Combined summary: velocity + beneficiary + 24h stats</td>
+</tr>
+<tr>
+<td><code>fraud</code></td>
+<td>Deep fraud heuristic analysis (geolocation, device fingerprint)</td>
+</tr>
+</tbody>
+</table>
 
 ### Decision Matrix
 
+```mermaid
+graph LR
+    A[Score: 0-19] -->|ALLOW| B[Low Risk<br/>Proceed]
+    C[Score: 20-75] -->|REVIEW| D[Medium Risk<br/>Manual Review]
+    E[Score: 76-100] -->|BLOCK| F[High Risk<br/>Reject]
+    
+    style A fill:#4CAF50
+    style C fill:#FF9800
+    style E fill:#F44336
 ```
-Score:   0 ──────── 20 ──────── 50 ──────── 75 ──────── 100
-         │          │           │           │            │
-     ◀── ALLOW ───▶ ◀─── REVIEW (manual) ──▶ ◀── BLOCK ─▶
-```
 
-| Score Range | Decision | Description |
-|---|---|---|
-| 0–19 | `ALLOW` | Low risk — transaction proceeds |
-| 20–75 | `REVIEW` | Medium risk — held for review or AI analysis |
-| 76–100 | `BLOCK` | High risk — transaction rejected |
+<table>
+<thead>
+<tr>
+<th>Score Range</th>
+<th>Decision</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0–19</td>
+<td><code>ALLOW</code></td>
+<td>Low risk — transaction proceeds</td>
+</tr>
+<tr>
+<td>20–75</td>
+<td><code>REVIEW</code></td>
+<td>Medium risk — held for review or AI analysis</td>
+</tr>
+<tr>
+<td>76–100</td>
+<td><code>BLOCK</code></td>
+<td>High risk — transaction rejected</td>
+</tr>
+</tbody>
+</table>
 
-**Fast-Track Shortcuts (skip AI entirely):**
+**Fast-Track Shortcuts** (skip AI entirely):
 
-| Condition | Decision | Score |
-|---|---|---|
-| Trusted beneficiary + amount < $100 | `ALLOW` | 5 |
-| Micro transaction (amount < $25) | `ALLOW` | 1 |
-| Static rules + patterns score > 75 | `BLOCK` | Combined |
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Decision</th>
+<th>Score</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trusted beneficiary + amount &lt; $100</td>
+<td><code>ALLOW</code></td>
+<td>5</td>
+</tr>
+<tr>
+<td>Micro transaction (amount &lt; $25)</td>
+<td><code>ALLOW</code></td>
+<td>1</td>
+</tr>
+<tr>
+<td>Static rules + patterns score &gt; 75</td>
+<td><code>BLOCK</code></td>
+<td>Combined</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
@@ -812,32 +975,97 @@ Score:   0 ──────── 20 ──────── 50 ────�
 
 ### Account Types & Limits
 
-The middleware enforces per-account limits **before** the fraud engine, using actual transaction history from the database (not client-reported values).
+<p>The middleware enforces per-account limits <strong>before</strong> the fraud engine, using actual transaction history from the database (not client-reported values).</p>
 
-| Account Type | Single Transaction Limit | Daily Limit |
-|---|---|---|
-| **SAVINGS** (default) | $5,000 | $10,000 |
-| **CHECKING** | $25,000 | $50,000 |
-| **PREMIUM** | $100,000 | $250,000 |
+<table>
+<thead>
+<tr>
+<th>Account Type</th>
+<th>Single Transaction Limit</th>
+<th>Daily Limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SAVINGS</strong> (default)</td>
+<td>$5,000</td>
+<td>$10,000</td>
+</tr>
+<tr>
+<td><strong>CHECKING</strong></td>
+<td>$25,000</td>
+<td>$50,000</td>
+</tr>
+<tr>
+<td><strong>PREMIUM</strong></td>
+<td>$100,000</td>
+<td>$250,000</td>
+</tr>
+</tbody>
+</table>
 
-Unknown accounts default to **SAVINGS** (most restrictive) for safety.
+<blockquote>
+<p>⚠️ Unknown accounts default to <strong>SAVINGS</strong> (most restrictive) for safety.</p>
+</blockquote>
 
 ### OTP Verification
 
-- **Threshold:** OTP required for transactions **≥ $100** (configurable via `OTP_REQUIRED_AMOUNT_THRESHOLD`)
-- **Format:** 6-digit numeric code
-- **TTL:** 5 minutes (300 seconds)
-- **Usage:** One-time — consumed upon successful verification
-- **Account Binding:** OTP is bound to both `transaction_id` and `from_account`
+<table>
+<tr>
+<td><strong>Threshold:</strong></td>
+<td>OTP required for transactions <strong>≥ $100</strong> (configurable via <code>OTP_REQUIRED_AMOUNT_THRESHOLD</code>)</td>
+</tr>
+<tr>
+<td><strong>Format:</strong></td>
+<td>6-digit numeric code</td>
+</tr>
+<tr>
+<td><strong>TTL:</strong></td>
+<td>5 minutes (300 seconds)</td>
+</tr>
+<tr>
+<td><strong>Usage:</strong></td>
+<td>One-time — consumed upon successful verification</td>
+</tr>
+<tr>
+<td><strong>Account Binding:</strong></td>
+<td>OTP is bound to both <code>transaction_id</code> and <code>from_account</code></td>
+</tr>
+</table>
 
 **Middleware Error Codes:**
 
-| Error Code | HTTP Status | Meaning |
-|---|---|---|
-| `LIMIT_EXCEEDED` | 400 | Single-transaction limit exceeded |
-| `DAILY_LIMIT_EXCEEDED` | 400 | Daily cumulative limit exceeded |
-| `OTP_REQUIRED` | 400 | OTP required but not provided |
-| `OTP_INVALID` | 400 | OTP is wrong or expired |
+<table>
+<thead>
+<tr>
+<th>Error Code</th>
+<th>HTTP Status</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LIMIT_EXCEEDED</code></td>
+<td>400</td>
+<td>Single-transaction limit exceeded</td>
+</tr>
+<tr>
+<td><code>DAILY_LIMIT_EXCEEDED</code></td>
+<td>400</td>
+<td>Daily cumulative limit exceeded</td>
+</tr>
+<tr>
+<td><code>OTP_REQUIRED</code></td>
+<td>400</td>
+<td>OTP required but not provided</td>
+</tr>
+<tr>
+<td><code>OTP_INVALID</code></td>
+<td>400</td>
+<td>OTP is wrong or expired</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
@@ -845,133 +1073,195 @@ Unknown accounts default to **SAVINGS** (most restrictive) for safety.
 
 ### Engine Thresholds
 
-All fraud detection parameters are defined in `fraud-service/app/services/fraud/cfg.py`. This is the **single source of truth** — no database or API updates needed; edit the file and restart.
+<p>All fraud detection parameters are defined in <code>fraud-service/app/services/fraud/cfg.py</code>. This is the <strong>single source of truth</strong> — no database or API updates needed; edit the file and restart.</p>
 
 #### Velocity (transactions in last 10 minutes)
 
-| Parameter | Default | Description |
-|---|---|---|
-| `velocity_block_threshold` | `10` | Block when count ≥ this |
-| `velocity_review_threshold` | `5` | Review when count ≥ this |
-| `velocity_warn_threshold` | `3` | Warn when count ≥ this |
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>velocity_block_threshold</code></td>
+<td><code>10</code></td>
+<td>Block when count ≥ this</td>
+</tr>
+<tr>
+<td><code>velocity_review_threshold</code></td>
+<td><code>5</code></td>
+<td>Review when count ≥ this</td>
+</tr>
+<tr>
+<td><code>velocity_warn_threshold</code></td>
+<td><code>3</code></td>
+<td>Warn when count ≥ this</td>
+</tr>
+</tbody>
+</table>
 
 #### New Beneficiary Amount Tiers
 
-| Parameter | Default | Description |
-|---|---|---|
-| `new_beneficiary_high_amount` | `$10,000` | High risk tier |
-| `new_beneficiary_med_amount` | `$5,000` | Medium risk tier |
-| `new_beneficiary_low_amount` | `$1,000` | Low risk tier |
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>new_beneficiary_high_amount</code></td>
+<td><code>$10,000</code></td>
+<td>High risk tier</td>
+</tr>
+<tr>
+<td><code>new_beneficiary_med_amount</code></td>
+<td><code>$5,000</code></td>
+<td>Medium risk tier</td>
+</tr>
+<tr>
+<td><code>new_beneficiary_low_amount</code></td>
+<td><code>$1,000</code></td>
+<td>Low risk tier</td>
+</tr>
+</tbody>
+</table>
 
 #### Amount Spike Detection
 
-| Parameter | Default | Description |
-|---|---|---|
-| `amount_spike_multiplier_avg` | `3.0` | Flag when amount > avg × this multiplier |
-| `amount_spike_multiplier_max` | `2.0` | Flag when amount > max × this multiplier |
-| `min_transactions_for_avg` | `2` | Min tx in 24h to compute average |
-
-#### Anomaly Detection
-
-| Parameter | Default | Description |
-|---|---|---|
-| `round_amount_tolerance` | `0.01` | Float tolerance for round-number detection |
-| `round_amount_score` | `20` | Risk score for round amounts |
-| `unusual_hour_min_tx` | `5` | Min tx in 7d to detect typical activity hours |
-| `off_hours_score` | `25` | Risk score for off-hours activity |
-
-#### Structuring / Smurfing
-
-| Parameter | Default | Description |
-|---|---|---|
-| `structuring_min_tx` | `3` | Min tx/beneficiaries to consider structuring |
-| `structuring_new_beneficiary_bonus` | `15` | Extra score for new beneficiary in structuring |
-
-#### Trusted Beneficiary
-
-| Parameter | Default | Description |
-|---|---|---|
-| `recurring_beneficiary_min` | `3` | Min past tx to treat as trusted beneficiary |
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>amount_spike_multiplier_avg</code></td>
+<td><code>3.0</code></td>
+<td>Flag when amount &gt; avg × this multiplier</td>
+</tr>
+<tr>
+<td><code>amount_spike_multiplier_max</code></td>
+<td><code>2.0</code></td>
+<td>Flag when amount &gt; max × this multiplier</td>
+</tr>
+<tr>
+<td><code>min_transactions_for_avg</code></td>
+<td><code>2</code></td>
+<td>Min tx in 24h to compute average</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
 ## 🤖 AI Agent Tools
 
-The LangGraph agent has access to 4 tools that query live data:
+<p>The LangGraph agent has access to 4 tools that query live data:</p>
 
-### `get_recent_transaction_count(account_id, minutes)`
-Returns the number of outbound transactions from this account in the last `N` minutes. Used for velocity/spam detection.
-
-### `check_beneficiary_history(from_account, to_account)`
-Returns whether the sender has previously transacted with this beneficiary and how many times. Used for new-beneficiary risk assessment.
-
-### `get_pattern_summary(from_account, to_account)`
-Returns a comprehensive summary: velocity, beneficiary count, 24h average amount, 24h max amount, and new-beneficiary flag. Used for holistic analysis.
-
-### `fraud(transaction_details)`
-Performs deep fraud heuristic analysis checking geolocation, device fingerprint, and external pattern databases.
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get_recent_transaction_count</code></td>
+<td>Returns the number of outbound transactions from this account in the last N minutes. Used for velocity/spam detection.</td>
+</tr>
+<tr>
+<td><code>check_beneficiary_history</code></td>
+<td>Returns whether the sender has previously transacted with this beneficiary and how many times. Used for new-beneficiary risk assessment.</td>
+</tr>
+<tr>
+<td><code>get_pattern_summary</code></td>
+<td>Returns a comprehensive summary: velocity, beneficiary count, 24h average amount, 24h max amount, and new-beneficiary flag. Used for holistic analysis.</td>
+</tr>
+<tr>
+<td><code>fraud</code></td>
+<td>Performs deep fraud heuristic analysis checking geolocation, device fingerprint, and external pattern databases.</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
 ## 💻 Frontend Application
 
-The frontend is a **Next.js 16** application with **React 19** and **Tailwind CSS 4**.
+<p>The frontend is a <strong>Next.js 16</strong> application with <strong>React 19</strong> and <strong>Tailwind CSS 4</strong>.</p>
 
 ### Pages
 
-| Route | Page | Description |
-|---|---|---|
-| `/` | Transfer Page | Main transaction input form with OTP flow |
-| `/history` | History Page | View all past transactions |
-| `/lookup` | Lookup Page | Search transactions by account ID |
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Page</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/</code></td>
+<td>Transfer Page</td>
+<td>Main transaction input form with OTP flow</td>
+</tr>
+<tr>
+<td><code>/history</code></td>
+<td>History Page</td>
+<td>View all past transactions</td>
+</tr>
+<tr>
+<td><code>/lookup</code></td>
+<td>Lookup Page</td>
+<td>Search transactions by account ID</td>
+</tr>
+</tbody>
+</table>
 
-### Components
+### Key Components
 
-| Component | File | Purpose |
-|---|---|---|
-| `TransferForm` | `TransferForm.tsx` | Transaction input form (amount, accounts, device) |
-| `FraudProcessor` | `FraudProcessor.tsx` | Processing animation while scanning |
-| `TransactionResult` | `TransactionResult.tsx` | Decision display with review actions |
-| `OtpPopup` | `OtpPopup.tsx` | OTP entry dialog |
-| `OtpStep` | `OtpStep.tsx` | OTP verification step |
-
-### Services
-
-| Service | File | Purpose |
-|---|---|---|
-| `fraudService` | `fraudService.ts` | HTTP client for all fraud-service API calls |
-| `configService` | `configService.ts` | Configuration and feature flag management |
-
----
-
-## 💾 Data Persistence
-
-FTR uses **SQLite** for lightweight, zero-config persistence:
-
-| Database | Purpose | Key Tables |
-|---|---|---|
-| `transactions.db` | Transaction history, account types | `transactions`, `account_types` |
-| `checkpoints.db` | LangGraph HITL checkpoint state | LangGraph internal tables |
-
-### Schema: `transactions` Table
-
-| Column | Type | Description |
-|---|---|---|
-| `transaction_id` | TEXT (PK) | Unique transaction identifier |
-| `from_account` | TEXT | Sender account ID |
-| `to_account` | TEXT | Recipient account ID |
-| `amount` | REAL | Transaction amount (USD) |
-| `timestamp` | TEXT | ISO 8601 timestamp |
-| `decision` | TEXT | `ALLOW`, `BLOCK`, `REVIEW`, `PENDING_REVIEW` |
-| `risk_score` | REAL | 0–100 risk score |
-| `reason` | TEXT | Human-readable decision reason |
-
-### Schema: `account_types` Table
-
-| Column | Type | Description |
-|---|---|---|
-| `account_id` | TEXT (PK) | Account identifier |
-| `account_type` | TEXT | `SAVINGS`, `CHECKING`, or `PREMIUM` |
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TransferForm</code></td>
+<td>Transaction input form (amount, accounts, device)</td>
+</tr>
+<tr>
+<td><code>FraudProcessor</code></td>
+<td>Processing animation while scanning</td>
+</tr>
+<tr>
+<td><code>TransactionResult</code></td>
+<td>Decision display with review actions</td>
+</tr>
+<tr>
+<td><code>OtpPopup</code></td>
+<td>OTP entry dialog</td>
+</tr>
+<tr>
+<td><code>OtpStep</code></td>
+<td>OTP verification step</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
@@ -979,7 +1269,7 @@ FTR uses **SQLite** for lightweight, zero-config persistence:
 
 ### Option A — Full Pipeline (Limits + OTP + Fraud)
 
-Use when FTR manages everything (limits, OTP, and fraud).
+<p>Use when FTR manages everything (limits, OTP, and fraud).</p>
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/middleware/check \
@@ -1030,7 +1320,7 @@ async def process_transfer(from_acc, to_acc, amount, otp=None):
 
 ### Option B — Fraud Evaluation Only
 
-Use when your system already handles limits and authentication.
+<p>Use when your system already handles limits and authentication.</p>
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/middleware/evaluate \
@@ -1050,57 +1340,129 @@ curl -X POST http://localhost:8000/api/v1/middleware/evaluate \
 
 ### Backend
 
-| Technology | Version | Purpose |
-|---|---|---|
-| **Python** | 3.9+ | Runtime |
-| **FastAPI** | Latest | Web framework & API |
-| **Pydantic** | v2 | Data validation & settings |
-| **LangChain** | Latest | AI tool calling framework |
-| **LangGraph** | Latest | Stateful agent workflow with HITL |
-| **OpenAI GPT-4o-mini** | Latest | LLM for behavioral analysis |
-| **SQLite** | Built-in | Transaction history & checkpoints |
-| **Uvicorn** | Latest | ASGI server |
-| **Docker** | — | Containerization |
+<table>
+<thead>
+<tr>
+<th>Technology</th>
+<th>Version</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Python</strong></td>
+<td>3.9+</td>
+<td>Runtime</td>
+</tr>
+<tr>
+<td><strong>FastAPI</strong></td>
+<td>Latest</td>
+<td>Web framework & API</td>
+</tr>
+<tr>
+<td><strong>Pydantic</strong></td>
+<td>v2</td>
+<td>Data validation & settings</td>
+</tr>
+<tr>
+<td><strong>LangChain</strong></td>
+<td>Latest</td>
+<td>AI tool calling framework</td>
+</tr>
+<tr>
+<td><strong>LangGraph</strong></td>
+<td>Latest</td>
+<td>Stateful agent workflow with HITL</td>
+</tr>
+<tr>
+<td><strong>OpenAI GPT-4o-mini</strong></td>
+<td>Latest</td>
+<td>LLM for behavioral analysis</td>
+</tr>
+<tr>
+<td><strong>SQLite</strong></td>
+<td>Built-in</td>
+<td>Transaction history & checkpoints</td>
+</tr>
+<tr>
+<td><strong>Uvicorn</strong></td>
+<td>Latest</td>
+<td>ASGI server</td>
+</tr>
+<tr>
+<td><strong>Docker</strong></td>
+<td>—</td>
+<td>Containerization</td>
+</tr>
+</tbody>
+</table>
 
 ### Frontend
 
-| Technology | Version | Purpose |
-|---|---|---|
-| **Next.js** | 16 | React meta-framework |
-| **React** | 19 | UI library |
-| **TypeScript** | 5+ | Type safety |
-| **Tailwind CSS** | 4 | Utility-first styling |
+<table>
+<thead>
+<tr>
+<th>Technology</th>
+<th>Version</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Next.js</strong></td>
+<td>16</td>
+<td>React meta-framework</td>
+</tr>
+<tr>
+<td><strong>React</strong></td>
+<td>19</td>
+<td>UI library</td>
+</tr>
+<tr>
+<td><strong>TypeScript</strong></td>
+<td>5+</td>
+<td>Type safety</td>
+</tr>
+<tr>
+<td><strong>Tailwind CSS</strong></td>
+<td>4</td>
+<td>Utility-first styling</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
 ## 🤝 Contributing
 
-1. **Fork** the repository
-2. **Create** a feature branch: `git checkout -b feature/my-feature`
-3. **Commit** your changes: `git commit -m 'Add my feature'`
-4. **Push** to the branch: `git push origin feature/my-feature`
-5. **Open** a Pull Request
+<ol>
+<li><strong>Fork</strong> the repository</li>
+<li><strong>Create</strong> a feature branch: <code>git checkout -b feature/my-feature</code></li>
+<li><strong>Commit</strong> your changes: <code>git commit -m 'Add my feature'</code></li>
+<li><strong>Push</strong> to the branch: <code>git push origin feature/my-feature</code></li>
+<li><strong>Open</strong> a Pull Request</li>
+</ol>
 
 ### Development Tips
 
-- **Hot reload:** Both services support hot-reload in development mode
-- **API docs:** Visit `http://localhost:8000/docs` for interactive Swagger UI
-- **Logs:** Check `fraud-service/service.log` for detailed execution logs
-- **Config changes:** Edit `cfg.py` and restart the server — no migration needed
+<ul>
+<li><strong>Hot reload:</strong> Both services support hot-reload in development mode</li>
+<li><strong>API docs:</strong> Visit <code>http://localhost:8000/docs</code> for interactive Swagger UI</li>
+<li><strong>Logs:</strong> Check <code>fraud-service/service.log</code> for detailed execution logs</li>
+<li><strong>Config changes:</strong> Edit <code>cfg.py</code> and restart the server — no migration needed</li>
+</ul>
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+<p>This project is licensed under the <strong>MIT License</strong>. See the <a href="LICENSE">LICENSE</a> file for details.</p>
 
 ---
 
 <div align="center">
 
-Built with ❤️ using **FastAPI**, **LangChain**, **LangGraph**, **Next.js**, and **OpenAI**
+<p>Built with ❤️ using <strong>FastAPI</strong>, <strong>LangChain</strong>, <strong>LangGraph</strong>, <strong>Next.js</strong>, and <strong>OpenAI</strong></p>
 
-**[⬆ Back to Top](#-ftr--fraud-transaction-router)**
 
 </div>
-]]>
