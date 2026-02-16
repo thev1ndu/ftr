@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { lookupHistory, TransactionHistoryItem } from '@/services/fraudService';
+import { lookupHistory, getAccountIndicators, TransactionHistoryItem, type AccountIndicatorsResponse } from '@/services/fraudService';
 import Button from '@/components/ui/Button';
 
 const SEARCH_DEBOUNCE_MS = 400;
@@ -105,6 +105,9 @@ export default function LookupPage() {
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [indicators, setIndicators] = useState<AccountIndicatorsResponse | null>(null);
+  const [indicatorsLoading, setIndicatorsLoading] = useState(false);
+  const [indicatorsError, setIndicatorsError] = useState('');
 
   // Pre-fill account from URL (e.g. /history?account=acc_merchant_999)
   useEffect(() => {
@@ -164,6 +167,23 @@ export default function LookupPage() {
     if (page > totalPages && totalPages >= 1) setPage(totalPages);
   }, [totalPages, page]);
 
+  const handleGetIndicators = useCallback(async () => {
+    const id = accountId.trim();
+    if (!id) return;
+    setIndicatorsLoading(true);
+    setIndicatorsError('');
+    setIndicators(null);
+    try {
+      const data = await getAccountIndicators(id);
+      setIndicators(data);
+    } catch (e) {
+      setIndicatorsError('Failed to load indicators.');
+      console.error(e);
+    } finally {
+      setIndicatorsLoading(false);
+    }
+  }, [accountId]);
+
   return (
     <div className="min-h-screen flex flex-col items-center p-6 md:p-10 relative bg-[var(--background)]">
       <div className="relative z-10 w-full max-w-3xl">
@@ -183,10 +203,10 @@ export default function LookupPage() {
               History
             </span>
             <Link
-              href="/settings"
+              href="/lookup"
               className="text-xs font-medium text-neutral-600 hover:text-[var(--brand)] transition-colors rounded-full px-3 py-1.5 hover:bg-[var(--brand-muted)]"
             >
-              Settings
+              Lookup
             </Link>
           </nav>
         </header>
@@ -254,6 +274,57 @@ export default function LookupPage() {
                   ${totalReceived.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
+            </div>
+
+            <div className="rounded-2xl bg-white border border-neutral-200 shadow-sm overflow-hidden mb-6">
+              <div className="border-b border-neutral-100 bg-neutral-50/80 px-5 py-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-semibold text-neutral-900">Risk indicators</h2>
+                  <p className="text-xs text-neutral-500 mt-0.5">Limits, triggers, safe vs anti-patterns, risk level</p>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={handleGetIndicators}
+                  disabled={indicatorsLoading || !accountId.trim()}
+                >
+                  {indicatorsLoading ? 'Loading…' : 'Get indicators'}
+                </Button>
+              </div>
+              {indicatorsError && (
+                <div className="mx-5 mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {indicatorsError}
+                </div>
+              )}
+              {indicators && (
+                <div className="p-5 space-y-4 border-t border-neutral-100">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                    <p><strong>Limits:</strong> {indicators.limits.account_type} · Single ${Number(indicators.limits.single_tx_limit).toLocaleString()} · Daily ${Number(indicators.limits.daily_limit).toLocaleString()} (used ${Number(indicators.limits.daily_used).toLocaleString()})</p>
+                    <p><strong>Risk level:</strong> <span className={`capitalize ${indicators.risk_level === 'low' ? 'text-[var(--ifs-teal)]' : indicators.risk_level === 'high' ? 'text-red-600' : 'text-[var(--ifs-orange)]'}`}>{indicators.risk_level}</span></p>
+                  </div>
+                  <p className="text-xs text-neutral-600"><strong>Triggers:</strong> {indicators.triggers_how_they_work}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {indicators.indicators.slice(0, 6).map((ind, i) => (
+                      <span key={i} className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs">
+                        {ind.name}: {String(ind.current_value)} <span className={ind.status === 'ok' ? 'text-[var(--ifs-teal)]' : ind.status === 'risk' ? 'text-red-600' : 'text-[var(--ifs-orange)]'}> ({ind.status})</span>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs font-medium text-neutral-500 uppercase mb-1">Safe patterns</p>
+                      <ul className="list-disc list-inside text-[var(--ifs-teal)]">{indicators.safe_patterns.length ? indicators.safe_patterns.map((p, i) => <li key={i}>{p}</li>) : <li className="text-neutral-500">None</li>}</ul>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-neutral-500 uppercase mb-1">Anti-patterns</p>
+                      <ul className="list-disc list-inside text-red-600/90">{indicators.anti_patterns.length ? indicators.anti_patterns.map((p, i) => <li key={i}>{p}</li>) : <li className="text-neutral-500">None</li>}</ul>
+                    </div>
+                  </div>
+                  <p className="text-sm text-neutral-700 border-t border-neutral-100 pt-3">{indicators.summary}</p>
+                  <Link href={`/lookup?account=${encodeURIComponent(accountId.trim())}`} className="text-xs text-[var(--brand)] hover:underline">
+                    View full indicators on Lookup →
+                  </Link>
+                </div>
+              )}
             </div>
 
             <div className="mb-2 flex items-center justify-between flex-wrap gap-2">

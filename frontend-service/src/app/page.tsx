@@ -124,10 +124,10 @@ export default function Home() {
               History
             </Link>
             <Link
-              href="/settings"
+              href="/lookup"
               className="text-xs font-medium text-neutral-600 hover:text-[var(--brand)] transition-colors rounded-full px-3 py-1.5 hover:bg-[var(--brand-muted)]"
             >
-              Settings
+              Lookup
             </Link>
           </nav>
         </header>

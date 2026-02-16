@@ -26,6 +26,13 @@ app.add_middleware(
 async def startup_event():
     logger.info("Fraud Detection Service Starting up...")
 
+
+@app.get("/health")
+async def root_health():
+    """Health at root for load balancers and existing systems."""
+    return {"status": "ok", "service": "fraud-middleware"}
+
+
 app.include_router(api_router, prefix="/api/v1")
 # Backward compatibility or root alias helper
 app.include_router(api_router) 

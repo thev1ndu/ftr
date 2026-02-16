@@ -227,11 +227,35 @@ export interface TransactionHistoryItem {
 }
 
 export const lookupHistory = async (accountId: string): Promise<TransactionHistoryItem[]> => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_FRAUD_URL}/lookup/${accountId}`);
+  const base = getFraudBase();
+  const response = await fetch(`${base}/lookup/${encodeURIComponent(accountId)}`);
+  if (!response.ok) throw new Error('Failed to fetch transaction history');
+  return response.json();
+};
 
-    if (!response.ok) {
-        throw new Error('Failed to fetch transaction history');
-    }
+/** Response from the LangChain indicators agent (limits, triggers, indicators, safe/anti patterns, risk). */
+export interface AccountIndicatorsResponse {
+  account_id: string;
+  limits: {
+    account_type: string;
+    single_tx_limit: number;
+    daily_limit: number;
+    daily_used: number;
+    daily_remaining: number;
+    otp_required_above: number;
+    limits_explanation?: string;
+  };
+  triggers_how_they_work: string;
+  indicators: Array<{ name: string; current_value: string | number; threshold_or_note: string; status: 'ok' | 'warning' | 'risk' }>;
+  safe_patterns: string[];
+  anti_patterns: string[];
+  risk_level: 'low' | 'medium' | 'high';
+  summary: string;
+}
 
-    return await response.json();
+export const getAccountIndicators = async (accountId: string): Promise<AccountIndicatorsResponse> => {
+  const base = getFraudBase();
+  const response = await fetch(`${base}/lookup/${encodeURIComponent(accountId)}/indicators`);
+  if (!response.ok) throw new Error('Failed to fetch account indicators');
+  return response.json();
 };

@@ -7,7 +7,7 @@ SUSPICIOUS_DEVICE_KEYWORDS = [
     "frida", "xposed", "emulator", "nox", "bluestacks"
 ]
 
-from app.services.fraud.config_store import get_all as _get_engine_config
+from app.services.fraud.store import get_all as _get_engine_config
 
 
 def pattern_check(transaction, stats: dict):

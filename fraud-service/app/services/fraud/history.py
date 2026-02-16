@@ -223,5 +223,23 @@ class TransactionHistory:
         stats["hour_counts_7d"] = self.get_hour_counts_last_7d(from_account)
         return stats
 
+    def get_account_indicators_stats(self, account_id: str) -> dict:
+        """Account-level stats for indicators/risk profile (no specific beneficiary)."""
+        recent_10m = self.get_recent_count_from_account(account_id, 10)
+        daily_used = self.get_daily_outbound_total(account_id)
+        amount_stats = self.get_amount_stats_last_hours(account_id, 24)
+        unique_ben_10m = self.get_unique_beneficiaries_in_window(account_id, 10)
+        hour_counts = self.get_hour_counts_last_7d(account_id)
+        history = self.get_account_history(account_id)
+        return {
+            "recent_count_10m": recent_10m,
+            "daily_used_24h": daily_used,
+            "amount_stats_24h": amount_stats,
+            "unique_beneficiaries_10m": unique_ben_10m,
+            "hour_counts_7d": hour_counts,
+            "history_count": len(history),
+            "history_sample": history[:10],
+        }
+
 
 history_service = TransactionHistory()

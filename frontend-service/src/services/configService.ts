@@ -31,12 +31,3 @@ export async function getConfigKey(key: string): Promise<{ key: string; value: n
   return response.json();
 }
 
-export async function updateConfig(updates: Partial<EngineConfig>): Promise<EngineConfig> {
-  const response = await fetch(`${BASE}/config`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(updates),
-  });
-  if (!response.ok) throw new Error('Failed to update config');
-  return response.json();
-}
